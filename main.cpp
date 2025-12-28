@@ -10,15 +10,12 @@ int main() {
     float GridSizeF = 100.f;
     unsigned gridSizeU = static_cast<unsigned>(GridSizeF); 
 
-
-    // SFML 3 Syntax: VideoMode mit {}f
     sf::RenderWindow window(sf::VideoMode({1200, 800}), "Chess - SFML 3");
 
     //init game elements
     sf::RectangleShape shape(sf::Vector2f(GridSizeF,GridSizeF));
 
     while (window.isOpen()) {
-        // Die neue pollEvent Syntax
         while (const std::optional event = window.pollEvent()) {
             if (event->is<sf::Event::Closed>()) {
                 window.close();
