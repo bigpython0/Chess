@@ -4,7 +4,6 @@
     #include <optional> 
     #include "SFML\System.hpp"
     #include "SFML\Window.hpp"
-    #include "SFML\Graphics.hpp"
 
 
     int main() {
@@ -13,6 +12,7 @@
         unsigned int screenWidth = 1200;
         unsigned int screenHeight = 800;
         sf::RenderWindow window(sf::VideoMode({screenWidth, screenHeight}), "Chess - SFML 3");
+        window.setFramerateLimit(60);
 
         //calculate sprite size
         float chessboardPngSize = 1028.f;
@@ -21,6 +21,7 @@
         //insert chessboard
         sf::Texture texture;
         if (!texture.loadFromFile("images/chessboard.png")) {
+            std::cout << "couldnt load image";
             return -1;
         }
 
@@ -37,7 +38,7 @@
         //cursor text
         sf::Font font;
         if (!font.openFromFile("C:/Coding_Projects/c++/Chess/fonts/arial.ttf")) {
-        std::cout << "text";
+        std::cout << "couldnt find font";
         return -1;
         }
         std::string cursorField = "";
@@ -52,20 +53,30 @@
 
         //Highlight Rectangle
         sf::RectangleShape highlightRec;
-        highlightRec.setFillColor(sf::Color(255, 0, 0, 128));
+        highlightRec.setFillColor(sf::Color(255, 0, 0, 0)); //last value is alpha 0-255
+        
+        sf::Vector2i lastMouseClick = {0,0};
+        bool showHighlightRec = false;
 
-
-        //init game elements
-
-
+        //EVENTS
         while (window.isOpen()) {
             while (const std::optional event = window.pollEvent()) {
                 if (event->is<sf::Event::Closed>()) {
                     window.close();
                 }
-
+                if (const auto* mouseClick = event->getIf<sf::Event::MouseButtonPressed>()) {
+                    if (mouseClick->button == sf::Mouse::Button::Right) {
+                        if(showHighlightRec) {
+                            showHighlightRec = false;
+                        } else {
+                            lastMouseClick = sf::Mouse::getPosition(window);
+                            showHighlightRec = true;
+                        }
+                    }
                 
+                }
             }
+            
 
             //Cursor text / position
             sf::Vector2i mousePixel = sf::Mouse::getPosition(window);
@@ -104,12 +115,19 @@
             }
 
             if(mY >= screenHeight || mY <= 0 || mouseXIndex < 0 || mouseXIndex > 7) {
-                highlightRec.setPosition({screenWidth, screenHeight}); // outside of window
+                highlightRec.setPosition({2000.f, 2000.f}); // outside of window
             } else {
-                highlightRec.setPosition({(((int)mX / 100)*100), ((((int)mY / 100))*100)});
+                float snapX = static_cast<float>(((lastMouseClick.x)/100) * 100);
+                float snapY = static_cast<float>(((lastMouseClick.y)/100) * 100);
+                highlightRec.setPosition({snapX, snapY});
+
+                if(showHighlightRec) {
+                    highlightRec.setFillColor(sf::Color(255, 0, 0, 128));
+                } else {
+                    highlightRec.setFillColor(sf::Color(255, 0, 0, 0));
+                }
             }
-            highlightRec.setSize({101,101});
-                                
+            highlightRec.setSize({101,101});       
 
             //RENDER
             window.clear(sf::Color(45, 45, 45));
@@ -118,9 +136,13 @@
             window.draw(cursorText);
             window.draw(highlightRec);
 
+            highlightRec.setFillColor(sf::Color::Blue);
+            highlightRec.setPosition({200,200});
+            window.draw(highlightRec);
+
 
 
             window.display(); //show window
         }
         return 0;
-    }
+}
