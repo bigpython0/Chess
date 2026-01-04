@@ -2,6 +2,7 @@
     #include <iostream> 
     #include <string>
     #include <optional> 
+    #include <list>
     #include "SFML\System.hpp"
     #include "SFML\Window.hpp"
 
@@ -57,6 +58,8 @@
         
         sf::Vector2i lastMouseClick = {0,0};
         bool showHighlightRec = false;
+        int amountHighlightRec = 0;
+        std::list<sf::Vector2i> highlightRecPositions; //SHOULD BE MORE (64 tiles on board)  
 
         //EVENTS
         while (window.isOpen()) {
@@ -66,18 +69,22 @@
                 }
                 if (const auto* mouseClick = event->getIf<sf::Event::MouseButtonPressed>()) {
                     if (mouseClick->button == sf::Mouse::Button::Right) {
-                        if(showHighlightRec) {
-                            showHighlightRec = false;
-                        } else {
+                        amountHighlightRec++;
+                        if(!showHighlightRec) {
                             lastMouseClick = sf::Mouse::getPosition(window);
                             showHighlightRec = true;
+
+                            if(highlightRecPositions.empty() || highlightRecPositions.back() != lastMouseClick) {
+                                highlightRecPositions.push_back(lastMouseClick);            
+                    }
                         }
                     }
-                
-                }
+                    if (mouseClick->button == sf::Mouse::Button::Left) {
+                        if(showHighlightRec) {
+                            showHighlightRec = false;
+                        }
+                    }
             }
-            
-
             //Cursor text / position
             sf::Vector2i mousePixel = sf::Mouse::getPosition(window);
             sf::Vector2f mouseWorld = window.mapPixelToCoords(mousePixel);
@@ -108,25 +115,14 @@
             int mouseXIndex = (int)mX / 100 - 2;
             char mouseXField = 'A' + mouseXIndex;
 
-            if(mY >= screenHeight || mY <= 0 || mouseXIndex < 0 || mouseXIndex > 7) {
+            bool mouseInBounds = !(mY >= screenHeight || mY <= 0 || mouseXIndex < 0 || mouseXIndex > 7);
+
+            if(!mouseInBounds) {
                 cursorText.setString("Mouse out of bounds");
             } else {
                 cursorText.setString(mouseXField + std::to_string((int)mouseYIndex));
             }
 
-            if(mY >= screenHeight || mY <= 0 || mouseXIndex < 0 || mouseXIndex > 7) {
-                highlightRec.setPosition({2000.f, 2000.f}); // outside of window
-            } else {
-                float snapX = static_cast<float>(((lastMouseClick.x)/100) * 100);
-                float snapY = static_cast<float>(((lastMouseClick.y)/100) * 100);
-                highlightRec.setPosition({snapX, snapY});
-
-                if(showHighlightRec) {
-                    highlightRec.setFillColor(sf::Color(255, 0, 0, 128));
-                } else {
-                    highlightRec.setFillColor(sf::Color(255, 0, 0, 0));
-                }
-            }
             highlightRec.setSize({101,101});       
 
             //RENDER
@@ -136,13 +132,21 @@
             window.draw(cursorText);
             window.draw(highlightRec);
 
-            highlightRec.setFillColor(sf::Color::Blue);
-            highlightRec.setPosition({200,200});
-            window.draw(highlightRec);
 
+            if(mouseInBounds) {
+                if(showHighlightRec) {
+                    for(const sf::Vector2i mousePos : highlightRecPositions) {
+                        float snapX = static_cast<float>(((mousePos.x)/100) * 100);
+                        float snapY = static_cast<float>(((mousePos.y)/100) * 100);
 
+                        highlightRec.setPosition({snapX, snapY});
+                        window.draw(highlightRec);
+                    }
+                }
+            }
 
             window.display(); //show window
         }
         return 0;
+    }
 }
