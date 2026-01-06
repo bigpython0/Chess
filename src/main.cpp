@@ -77,14 +77,23 @@
                             if(highlightRecPositions.empty() || highlightRecPositions.back() != lastMouseClick) {
                                 highlightRecPositions.push_back(lastMouseClick);            
                     }
+                        } else {
+                            lastMouseClick = sf::Mouse::getPosition(window);
+                            if(highlightRecPositions.empty() || highlightRecPositions.back() != lastMouseClick) {
+                                highlightRecPositions.push_back(lastMouseClick);   
+                            }
                         }
                     }
                     if (mouseClick->button == sf::Mouse::Button::Left) {
                         if(showHighlightRec) {
                             showHighlightRec = false;
+                            highlightRecPositions.clear();
+                            //std::cout << highlightRecPositions.front().x <<std::endl;
                         }
                     }
-            }
+            
+                }
+        }
             //Cursor text / position
             sf::Vector2i mousePixel = sf::Mouse::getPosition(window);
             sf::Vector2f mouseWorld = window.mapPixelToCoords(mousePixel);
@@ -130,23 +139,20 @@
 
             window.draw(sprite);
             window.draw(cursorText);
-            window.draw(highlightRec);
 
-
-            if(mouseInBounds) {
-                if(showHighlightRec) {
+            if(showHighlightRec) {
+                if(!highlightRecPositions.empty()) {
                     for(const sf::Vector2i mousePos : highlightRecPositions) {
                         float snapX = static_cast<float>(((mousePos.x)/100) * 100);
                         float snapY = static_cast<float>(((mousePos.y)/100) * 100);
+                        highlightRec.setFillColor(sf::Color(255, 0, 0, 128));
 
                         highlightRec.setPosition({snapX, snapY});
                         window.draw(highlightRec);
                     }
                 }
             }
-
             window.display(); //show window
-        }
-        return 0;
-    }
+            }
+        return 0;    
 }
