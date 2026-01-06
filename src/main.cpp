@@ -58,7 +58,6 @@
         
         sf::Vector2i lastMouseClick = {0,0};
         bool showHighlightRec = false;
-        int amountHighlightRec = 0;
         std::list<sf::Vector2i> highlightRecPositions; //SHOULD BE MORE (64 tiles on board)  
 
         //EVENTS
@@ -67,23 +66,32 @@
                 if (event->is<sf::Event::Closed>()) {
                     window.close();
                 }
+                //RIGHT click
                 if (const auto* mouseClick = event->getIf<sf::Event::MouseButtonPressed>()) {
                     if (mouseClick->button == sf::Mouse::Button::Right) {
-                        amountHighlightRec++;
-                        if(!showHighlightRec) {
-                            lastMouseClick = sf::Mouse::getPosition(window);
-                            showHighlightRec = true;
+                        lastMouseClick = sf::Mouse::getPosition(window);
+                        bool currentMouseClickInList = false;
+                        sf::Vector2i snappedPos;
+                        snappedPos.x = static_cast<float>(((lastMouseClick.x)/100) * 100);
+                        snappedPos.y = static_cast<float>(((lastMouseClick.y)/100) * 100);
 
-                            if(highlightRecPositions.empty() || highlightRecPositions.back() != lastMouseClick) {
-                                highlightRecPositions.push_back(lastMouseClick);            
-                    }
-                        } else {
-                            lastMouseClick = sf::Mouse::getPosition(window);
-                            if(highlightRecPositions.empty() || highlightRecPositions.back() != lastMouseClick) {
-                                highlightRecPositions.push_back(lastMouseClick);   
+                        bool alreadyExists = false;
+                        auto hBegin = highlightRecPositions.begin();
+                        auto hEnd = highlightRecPositions.end();
+                        for( auto it = hBegin; it != hEnd; ++it) {
+                            if(*it == snappedPos) {
+                                highlightRecPositions.erase(it);
+                                alreadyExists = true;
+                                break;
                             }
                         }
+                        if(!alreadyExists) {
+                                highlightRecPositions.push_back(snappedPos);    
+                        }
+                        showHighlightRec = !(highlightRecPositions.empty());
                     }
+
+                    //LEFT click
                     if (mouseClick->button == sf::Mouse::Button::Left) {
                         if(showHighlightRec) {
                             showHighlightRec = false;
@@ -143,11 +151,10 @@
             if(showHighlightRec) {
                 if(!highlightRecPositions.empty()) {
                     for(const sf::Vector2i mousePos : highlightRecPositions) {
-                        float snapX = static_cast<float>(((mousePos.x)/100) * 100);
-                        float snapY = static_cast<float>(((mousePos.y)/100) * 100);
+                        
                         highlightRec.setFillColor(sf::Color(255, 0, 0, 128));
 
-                        highlightRec.setPosition({snapX, snapY});
+                        highlightRec.setPosition({static_cast<float>(mousePos.x), static_cast<float>(mousePos.y)});
                         window.draw(highlightRec);
                     }
                 }
