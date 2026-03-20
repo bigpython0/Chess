@@ -6,6 +6,49 @@
     #include "SFML\System.hpp"
     #include "SFML\Window.hpp"
 
+    enum class Color {
+        White,
+        Black
+    };
+
+    class Piece {
+        protected: 
+            Color color;
+            sf::Vector2i boardPos;
+            sf::Sprite sprite;
+
+        public:
+            Piece(Color c, sf::Vector2i coords) : color(c), boardPos(coords) {}
+            virtual ~Piece() = default;
+
+            void draw(sf::RenderWindow& window) {
+                window.draw(sprite);
+            }
+
+            virtual bool isValidMove(sf::Vector2i newPos) = 0;
+
+    };
+
+    
+    class Rook : public Piece {
+        public:
+            explicit Rook(Color c, sf::Vector2i coords) 
+                : Piece(c, coords),
+                rookSprite(rookTexture) 
+                {
+                    if(!rookTexture.loadFromFile("images/pieces/rook_black.png")) {
+                        std::cout << "black rook not found\n";
+                    }
+                } 
+        private: 
+            sf::Texture rookTexture;
+            sf::Sprite rookSprite;
+    };
+
+    class TextureManager {
+        Piece* pieces[40] = { nullptr }
+    };
+
 
     int main() {
         //init game
@@ -60,6 +103,12 @@
         bool showHighlightRec = false;
         std::list<sf::Vector2i> highlightRecPositions; //SHOULD BE MORE (64 tiles on board)  
 
+        //Board Management
+        Piece* board[8][8] = { nullptr };
+
+        board[0][0] = new Rook(Color::Black, {0,0});
+        
+        
         //EVENTS
         while (window.isOpen()) {
             while (const std::optional event = window.pollEvent()) {
