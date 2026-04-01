@@ -3,8 +3,8 @@
     #include <string>
     #include <optional> 
     #include <list>
-    #include "SFML\System.hpp"
-    #include "SFML\Window.hpp"
+    #include <SFML/System.hpp>
+    #include <SFML/Window.hpp>
 
 
     int main() {
@@ -22,7 +22,7 @@
         //insert chessboard
         sf::Texture texture;
         if (!texture.loadFromFile("images/chessboard.png")) {
-            std::cout << "couldnt load image";
+            std::cout << "couldnt load image" << std::endl;
             return -1;
         }
 
@@ -38,8 +38,8 @@
 
         //cursor text
         sf::Font font;
-        if (!font.openFromFile("C:/Coding_Projects/c++/Chess/fonts/arial.ttf")) {
-        std::cout << "couldnt find font";
+        if (!font.openFromFile("fonts/arial.ttf")) {
+        std::cout << "couldnt find font" << std::endl;
         return -1;
         }
         std::string cursorField = "";
@@ -107,7 +107,7 @@
             sf::Vector2f mouseWorld = window.mapPixelToCoords(mousePixel);
 
                 // set mouse Boundaries
-                mouseWorld.x - posX;
+                //mouseWorld.x - posX;
                 if(mouseWorld.x<posX) {
                     mouseWorld.x = 0;
                 } else if(mouseWorld.x>rightBound-posX-18) { //idk why 18 but it works

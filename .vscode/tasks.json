@@ -2,27 +2,25 @@
     "version": "2.0.0",
     "tasks": [
         {
-            "type": "cppbuild",
             "label": "Build SFML Project",
-            "command": "C:/msys64/mingw64/bin/g++.exe",
+            "type": "shell",
+            "command": "/usr/bin/clang++",
             "args": [
-                "-std=c++20", 
-                "-g",
-                "${file}",
-                "-o", "${fileDirname}/${fileBasenameNoExtension}.exe",
-                "-I", "C:/SFML_cpp/SFML-3-Built/include",
-                "-L", "C:/SFML_cpp/SFML-3-Built/lib",
+                "-std=c++17",
+                "${workspaceFolder}/src/main.cpp",
+                "-o",
+                "${workspaceFolder}/src/chess_game",
+                "-I/opt/homebrew/opt/sfml/include",
+                "-L/opt/homebrew/opt/sfml/lib",
                 "-lsfml-graphics",
                 "-lsfml-window",
                 "-lsfml-system"
             ],
-            "options": {
-                "cwd": "${fileDirname}"
-            },
             "group": {
                 "kind": "build",
                 "isDefault": true
-            }
+            },
+            "problemMatcher": ["$gcc"]
         }
     ]
 }
