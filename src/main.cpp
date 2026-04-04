@@ -20,7 +20,7 @@
             : color(c),  sprite(texture){}
             virtual ~Piece() = default;
 
-            virtual bool isValidMove() {
+            virtual bool isValidMove(sf::Vector2i from, sf::Vector2i to) {
                 return true;
             }
 
@@ -50,7 +50,31 @@
                             std::cout << "couldnt load white pawn texture" << std::endl;
                         }
             } else {
-                if(texture.loadFromFile("src/images/pieces/balck-pawn.png")) {
+                if(texture.loadFromFile("src/images/pieces/black-pawn.png")) {
+                            sprite.setTexture(texture, true);
+                        } else {
+                            std::cout << "couldnt load black pawn texture" << std::endl;
+                        }
+                }
+            }
+
+            bool isValidMove(sf::Vector2i from, sf::Vector2i to) override {            
+                return false;
+            }
+    };
+
+    class Knight : public Piece {
+        public:
+            explicit Knight(Color c)
+            : Piece(c) {
+            if(c == Color::White) {
+                if(texture.loadFromFile("src/images/pieces/white-knight.png")) {
+                            sprite.setTexture(texture, true);
+                        } else {
+                            std::cout << "couldnt load white pawn texture" << std::endl;
+                        }
+            } else {
+                if(texture.loadFromFile("src/images/pieces/black-knight.png")) {
                             sprite.setTexture(texture, true);
                         } else {
                             std::cout << "couldnt load black pawn texture" << std::endl;
@@ -58,8 +82,80 @@
             }
         }
 
-        bool isValidMove() override {
-            return true;
+        bool isValidMove(sf::Vector2i from, sf::Vector2i to) override {            
+                return true;
+        }
+    };
+
+    class Bishop : public Piece {
+        public:
+            explicit Bishop(Color c)
+            : Piece(c) {
+            if(c == Color::White) {
+                if(texture.loadFromFile("src/images/pieces/white-bishop.png")) {
+                            sprite.setTexture(texture, true);
+                        } else {
+                            std::cout << "couldnt load white pawn texture" << std::endl;
+                        }
+            } else {
+                if(texture.loadFromFile("src/images/pieces/black-bishop.png")) {
+                            sprite.setTexture(texture, true);
+                        } else {
+                            std::cout << "couldnt load black pawn texture" << std::endl;
+                        }
+            }
+        }
+
+        bool isValidMove(sf::Vector2i from, sf::Vector2i to) override {            
+                return true;
+        }
+    };
+
+    class Queen : public Piece {
+        public:
+            explicit Queen(Color c)
+            : Piece(c) {
+            if(c == Color::White) {
+                if(texture.loadFromFile("src/images/pieces/white-queen.png")) {
+                            sprite.setTexture(texture, true);
+                        } else {
+                            std::cout << "couldnt load white pawn texture" << std::endl;
+                        }
+            } else {
+                if(texture.loadFromFile("src/images/pieces/black-queen.png")) {
+                            sprite.setTexture(texture, true);
+                        } else {
+                            std::cout << "couldnt load black pawn texture" << std::endl;
+                        }
+            }
+        }
+
+        bool isValidMove(sf::Vector2i from, sf::Vector2i to) override {            
+                return true;
+        }
+    };
+
+    class King : public Piece {
+        public:
+            explicit King(Color c)
+            : Piece(c) {
+            if(c == Color::White) {
+                if(texture.loadFromFile("src/images/pieces/white-king.png")) {
+                            sprite.setTexture(texture, true);
+                        } else {
+                            std::cout << "couldnt load white pawn texture" << std::endl;
+                        }
+            } else {
+                if(texture.loadFromFile("src/images/pieces/black-king.png")) {
+                            sprite.setTexture(texture, true);
+                        } else {
+                            std::cout << "couldnt load black pawn texture" << std::endl;
+                        }
+            }
+        }
+
+        bool isValidMove(sf::Vector2i from, sf::Vector2i to) override {            
+                return true;
         }
     };
 
@@ -84,8 +180,8 @@
                     }
                 } 
 
-            bool isValidMove() override {
-                return 1; //TODO implement
+            bool isValidMove(sf::Vector2i from, sf::Vector2i to) override {            
+                return true;
             }
     };
 
@@ -100,13 +196,41 @@
                 
                 Board(float x, float y, float tile)
                     : offsetX(x), offsetY(y), tileSize(tile) {
-                        setPiece({0,0}, new Rook(Piece::Color::White));
-                        setPiece({7,0}, new Rook(Piece::Color::White));
-                        setPiece({0,7}, new Rook(Piece::Color::Black));
-                        setPiece({7,7}, new Rook(Piece::Color::Black));
+                        //WHITE ____________________
                         for(int x = 0; x<8; x++) {
                             setPiece({x,1}, new Pawn(Piece::Color::White));
                         }
+                        setPiece({1,0}, new Knight(Piece::Color::White));
+                        setPiece({6,0}, new Knight(Piece::Color::White));
+
+                        setPiece({2,0}, new Bishop(Piece::Color::White));
+                        setPiece({5,0}, new Bishop(Piece::Color::White));
+
+                        setPiece({0,0}, new Rook(Piece::Color::White));
+                        setPiece({7,0}, new Rook(Piece::Color::White));
+
+                        setPiece({3,0}, new Queen(Piece::Color::White));
+                        setPiece({4,0}, new King(Piece::Color::White));
+
+
+
+                        //BLACK____________________
+                        for(int x = 0; x<8; x++) {
+                            setPiece({x,6}, new Pawn(Piece::Color::Black));
+                        }
+                        setPiece({1,7}, new Knight(Piece::Color::Black));
+                        setPiece({6,7}, new Knight(Piece::Color::Black));
+
+                        setPiece({2,7}, new Bishop(Piece::Color::Black));
+                        setPiece({5,7}, new Bishop(Piece::Color::Black));
+
+                        setPiece({0,7}, new Rook(Piece::Color::Black));
+                        setPiece({7,7}, new Rook(Piece::Color::Black));
+
+                        setPiece({4,7}, new Queen(Piece::Color::Black));
+                        setPiece({3,7}, new King(Piece::Color::Black));
+
+                        
                     }
                     
                     void setPiece(sf::Vector2i pos, Piece* piece) {
@@ -126,13 +250,16 @@
                     }
 
                 void movePiece(sf::Vector2i from, sf::Vector2i to) {
-                    board[to.y][to.x] = board[from.y][from.x];
-                    board[from.y][from.x] = nullptr;
+                    if(board[from.y][from.x]->isValidMove(from,to)){
 
-                    float newPosX = offsetX + static_cast<float>(to.x) * tileSize;
-                    float newPosY = offsetY + static_cast<float>(7-to.y) * tileSize;
+                        board[to.y][to.x] = board[from.y][from.x];
+                        board[from.y][from.x] = nullptr;
 
-                    board[to.y][to.x]->updateSpritePosition(newPosX, newPosY); 
+                        float newPosX = offsetX + static_cast<float>(to.x) * tileSize;
+                        float newPosY = offsetY + static_cast<float>(7-to.y) * tileSize;
+
+                        board[to.y][to.x]->updateSpritePosition(newPosX, newPosY); 
+                    }
                 }
 
                 Piece* getPieceFromMouse(sf::Vector2i pos) { //input is raw mouse pos, not converted yet
