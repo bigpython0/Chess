@@ -5,10 +5,10 @@
       "name": "SFML Debug (Mac)",
       "type": "cppdbg",
       "request": "launch",
-      "program": "${workspaceFolder}/src/chess_game",
+      "program": "${workspaceFolder}/chess_game",
       "args": [],
       "stopAtEntry": false,
-      "cwd": "${workspaceFolder}/src",
+      "cwd": "${workspaceFolder}",
       "environment": [
         {
           "name": "DYLD_LIBRARY_PATH",

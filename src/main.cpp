@@ -6,6 +6,159 @@
     #include <SFML/System.hpp>
     #include <SFML/Window.hpp>
 
+    class Piece {
+        public:
+        enum class Color {White, Black};
+
+        protected: 
+            Color color;
+            sf::Texture texture;
+            sf::Sprite sprite;
+
+        public:
+            Piece(Color c) 
+            : color(c),  sprite(texture){}
+            virtual ~Piece() = default;
+
+            virtual bool isValidMove() {
+                return true;
+            }
+
+            void scaleToFit(float tileSize) {
+                float scaleX = tileSize / sprite.getGlobalBounds().size.x;
+                float scaleY = tileSize / sprite.getGlobalBounds().size.y;
+                sprite.setScale({scaleX, scaleY});
+            }
+
+            void draw(sf::RenderWindow& window) {
+                window.draw(sprite);
+            }
+
+            void updateSpritePosition(float posX, float posY) {
+                sprite.setPosition({posX, posY});
+            }
+    };
+
+    class Pawn : public Piece {
+        public:
+            explicit Pawn(Color c)
+            : Piece(c) {
+            if(c == Color::White) {
+                if(texture.loadFromFile("src/images/pieces/white-pawn.png")) {
+                            sprite.setTexture(texture, true);
+                        } else {
+                            std::cout << "couldnt load white pawn texture" << std::endl;
+                        }
+            } else {
+                if(texture.loadFromFile("src/images/pieces/balck-pawn.png")) {
+                            sprite.setTexture(texture, true);
+                        } else {
+                            std::cout << "couldnt load black pawn texture" << std::endl;
+                        }
+            }
+        }
+
+        bool isValidMove() override {
+            return true;
+        }
+    };
+
+    
+    class Rook : public Piece {
+        public:
+            explicit Rook(Color c) 
+                : Piece(c)
+                {
+                    if(c == Color::White) {
+                        if(texture.loadFromFile("src/images/pieces/white-rook.png")) {
+                            sprite.setTexture(texture, true);
+                        } else {
+                            std::cout << "couldnt load black rook texture" << std::endl;
+                        }
+                    } else {
+                        if(texture.loadFromFile("src/images/pieces/black-rook.png")) {
+                            sprite.setTexture(texture, true);
+                        } else {
+                            std::cout << "couldnt load black rook texture" << std::endl;
+                        }
+                    }
+                } 
+
+            bool isValidMove() override {
+                return 1; //TODO implement
+            }
+    };
+
+        class Board {
+            private:
+                Piece* board[8][8] = { nullptr }; 
+                float offsetX;
+                float offsetY;
+                float tileSize;
+            
+            public:
+                
+                Board(float x, float y, float tile)
+                    : offsetX(x), offsetY(y), tileSize(tile) {
+                        setPiece({0,0}, new Rook(Piece::Color::White));
+                        setPiece({7,0}, new Rook(Piece::Color::White));
+                        setPiece({0,7}, new Rook(Piece::Color::Black));
+                        setPiece({7,7}, new Rook(Piece::Color::Black));
+                        for(int x = 0; x<8; x++) {
+                            setPiece({x,1}, new Pawn(Piece::Color::White));
+                        }
+                    }
+                    
+                    void setPiece(sf::Vector2i pos, Piece* piece) {
+                        if(pos.x >=0 && pos.y>=0 && pos.x<8 && pos.y <8){
+                            if(board[pos.y][pos.x] != nullptr){
+                            delete board[pos.y][pos.x];
+                        }
+                            board[pos.y][pos.x] = piece;
+                            if(piece) {
+                                piece->scaleToFit(tileSize);
+                                int drawY = 7-pos.y;
+                                piece->updateSpritePosition(offsetX + pos.x * tileSize, 
+                                offsetY + drawY*tileSize);
+                            }
+                        }
+                        
+                    }
+
+                void movePiece(sf::Vector2i from, sf::Vector2i to) {
+                    board[to.y][to.x] = board[from.y][from.x];
+                    board[from.y][from.x] = nullptr;
+
+                    float newPosX = offsetX + static_cast<float>(to.x) * tileSize;
+                    float newPosY = offsetY + static_cast<float>(7-to.y) * tileSize;
+
+                    board[to.y][to.x]->updateSpritePosition(newPosX, newPosY); 
+                }
+
+                Piece* getPieceFromMouse(sf::Vector2i pos) { //input is raw mouse pos, not converted yet
+                    sf::Vector2i convertedPos = mouseToGrid(pos);
+                    return board[convertedPos.y][convertedPos.x];
+                }
+
+                Piece* getPieceFromGrid(sf::Vector2i pos) { //input is board pos, already converted
+                    return board[pos.y][pos.x];
+                }
+
+                sf::Vector2i mouseToGrid(sf::Vector2i mP) {
+                    int x = (mP.x - offsetX) / tileSize;
+                    int y = (mP.y - offsetY) / tileSize;
+
+                    if(x<0) x=0; else if (x>7) x=7;
+                    if(y<0) y=0; else if (y>7) y=7;
+
+                    y = 7-y;
+
+                    return sf::Vector2i(x,y);
+                }
+
+
+        };
+
 
     int main() {
         //init game
@@ -21,24 +174,24 @@
 
         //insert chessboard
         sf::Texture texture;
-        if (!texture.loadFromFile("images/chessboard.png")) {
+        if (!texture.loadFromFile("src/images/chessboard.png")) {
             std::cout << "couldnt load image" << std::endl;
             return -1;
         }
 
-        //_____________SPRITE creation
-        sf::Sprite sprite(texture);
-        sf::FloatRect bounds = sprite.getLocalBounds(); 
-        sf::FloatRect globalBounds = sprite.getGlobalBounds(); 
+        //_____________SPRITE creation (chessboaed?)_____________
+        sf::Sprite boardSprite(texture);
+        sf::FloatRect bounds = boardSprite.getLocalBounds(); 
+        sf::FloatRect globalBounds = boardSprite.getGlobalBounds(); 
         float rightBound = bounds.position.x + bounds.size.x;
         float factor = static_cast<float>(screenHeight) / bounds.size.y;
-        sprite.setScale({factor, factor});
-        float posX = (static_cast<float>(screenWidth) - sprite.getGlobalBounds().size.x) / 2.f;
-        sprite.setPosition({posX, 0.f});
+        boardSprite.setScale({factor, factor});
+        float posX = (static_cast<float>(screenWidth) - boardSprite.getGlobalBounds().size.x) / 2.f;
+        boardSprite.setPosition({posX, 0.f});
 
         //cursor text
         sf::Font font;
-        if (!font.openFromFile("fonts/arial.ttf")) {
+        if (!font.openFromFile("src/fonts/arial.ttf")) {
         std::cout << "couldnt find font" << std::endl;
         return -1;
         }
@@ -58,10 +211,15 @@
         
         sf::Vector2i lastMouseClick = {0,0};
         bool showHighlightRec = false;
-        std::list<sf::Vector2i> highlightRecPositions; //SHOULD BE MORE (64 tiles on board)  
+        std::list<sf::Vector2i> highlightRecPositions; //SHOULD BE MORE (64 tiles on board) 
+
+        Board board(posX, 0, boardSprite.getGlobalBounds().size.x/8.f);
+
+        bool isPieceSelected = false;
+        sf::Vector2i selectedGridPos;
 
         //EVENTS
-        while (window.isOpen()) {
+        while (window.isOpen()) {  
             while (const std::optional event = window.pollEvent()) {
                 if (event->is<sf::Event::Closed>()) {
                     window.close();
@@ -93,11 +251,31 @@
 
                     //LEFT click
                     if (mouseClick->button == sf::Mouse::Button::Left) {
+                        //HIGHLIGHT START
                         if(showHighlightRec) {
                             showHighlightRec = false;
                             highlightRecPositions.clear();
                             //std::cout << highlightRecPositions.front().x <<std::endl;
                         }
+                        //HIGHLIGHT END
+
+                        sf::Vector2i mousePos = sf::Mouse::getPosition(window);
+                    
+                        // Wir brauchen hier eine neue Funktion im Board (siehe Punkt 3)
+                        sf::Vector2i clickedGridPos = board.mouseToGrid(mousePos);
+
+                        if (!isPieceSelected) {
+                            if (board.getPieceFromGrid(clickedGridPos) != nullptr) {
+                                isPieceSelected = true;
+                                selectedGridPos = clickedGridPos;
+                            }
+                        } else {
+                            if (selectedGridPos != clickedGridPos) {
+                                board.movePiece(selectedGridPos, clickedGridPos);
+                            }
+                            isPieceSelected = false; 
+                        }
+
                     }
             
                 }
@@ -140,13 +318,12 @@
                 cursorText.setString(mouseXField + std::to_string((int)mouseYIndex));
             }
 
-            highlightRec.setSize({101,101});       
+            highlightRec.setSize({101,101});    
 
             //RENDER
             window.clear(sf::Color(45, 45, 45));
 
-            window.draw(sprite);
-            window.draw(cursorText);
+            window.draw(boardSprite);
 
             if(showHighlightRec) {
                 if(!highlightRecPositions.empty()) {
@@ -159,6 +336,19 @@
                     }
                 }
             }
+
+            // Alle Figuren auf dem Brett zeichnen
+            for(int y = 0; y < 8; y++) {
+                for(int x = 0; x < 8; x++) {
+                    Piece* piece = board.getPieceFromGrid({x,y});
+                    if(piece != nullptr) {
+                        piece->draw(window);
+                    }
+                }
+            }
+
+
+            window.draw(cursorText);
             window.display(); //show window
             }
         return 0;    

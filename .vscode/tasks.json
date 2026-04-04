@@ -9,7 +9,7 @@
                 "-std=c++17",
                 "${workspaceFolder}/src/main.cpp",
                 "-o",
-                "${workspaceFolder}/src/chess_game",
+                "${workspaceFolder}/chess_game", // <--- HIER: Das /src/ entfernt
                 "-I/opt/homebrew/opt/sfml/include",
                 "-L/opt/homebrew/opt/sfml/lib",
                 "-lsfml-graphics",
