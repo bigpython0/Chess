@@ -352,14 +352,43 @@
             };
 
         bool Knight::isValidMove(sf::Vector2i from, sf::Vector2i to, Board& board){
-            return true;
+            
         }
 
         bool Bishop::isValidMove(sf::Vector2i from, sf::Vector2i to, Board& board){
-                return true;
+            int xDiff = to.x - from.x;
+            int yDiff = to.y - from.y;
+
+            if(!(std::abs(xDiff) == std::abs(yDiff))) {
+                return false;
+            }
+            
+            Piece* targetPiece = board.getPieceFromGrid(to);
+            if( !board.isPathBlocked(from, to)) {
+                return (targetPiece != nullptr) ? targetPiece->getColor() != color : true;
+            }
+            return false;
         }
         bool Queen::isValidMove(sf::Vector2i from, sf::Vector2i to, Board& board){
-                return true;
+            int xDiff = to.x - from.x;
+            int yDiff = to.y - from.y;
+
+            if(((xDiff == 0 && std::abs(yDiff) > 0 )|| (yDiff == 0 && std::abs(xDiff) > 0))) {
+                    if( !board.isPathBlocked(from, to)) {
+                        Piece* targetPiece = board.getPieceFromGrid(to);
+                        return (targetPiece != nullptr) ? targetPiece->getColor() != color : true;
+                    }
+            }
+
+            if(!(std::abs(xDiff) == std::abs(yDiff))) {
+                return false;
+            }
+            
+            Piece* targetPiece = board.getPieceFromGrid(to);
+            if( !board.isPathBlocked(from, to)) {
+                return (targetPiece != nullptr) ? targetPiece->getColor() != color : true;
+            }
+            return false;
         }
 
         bool King::isValidMove(sf::Vector2i from, sf::Vector2i to, Board& board){
@@ -367,7 +396,17 @@
         }
 
         bool Rook::isValidMove(sf::Vector2i from, sf::Vector2i to, Board& board){
-                return true;
+            int xDiff = to.x - from.x;
+            int yDiff = to.y - from.y;
+
+            if(((xDiff == 0 && std::abs(yDiff) > 0 )|| (yDiff == 0 && std::abs(xDiff) > 0))) {
+                    if( !board.isPathBlocked(from, to)) {
+                        Piece* targetPiece = board.getPieceFromGrid(to);
+                        return (targetPiece != nullptr) ? targetPiece->getColor() != color : true;
+                    }
+            }
+            return false;
+
         }
 
     int main() {
