@@ -352,6 +352,7 @@
             };
 
         bool Knight::isValidMove(sf::Vector2i from, sf::Vector2i to, Board& board){
+            return true;
             
         }
 
