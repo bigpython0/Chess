@@ -6,6 +6,8 @@
     #include <SFML/System.hpp>
     #include <SFML/Window.hpp>
 
+    class Board;
+
     class Piece {
         public:
         enum class Color {White, Black};
@@ -20,8 +22,12 @@
             : color(c),  sprite(texture){}
             virtual ~Piece() = default;
 
-            virtual bool isValidMove(sf::Vector2i from, sf::Vector2i to) {
+            virtual bool isValidMove(sf::Vector2i from, sf::Vector2i to, Board& board) {
                 return true;
+            }
+
+            Piece::Color getColor() {
+                return this->color;
             }
 
             void scaleToFit(float tileSize) {
@@ -40,6 +46,9 @@
     };
 
     class Pawn : public Piece {
+        private: 
+            bool isFirstMove = true;
+
         public:
             explicit Pawn(Color c)
             : Piece(c) {
@@ -57,10 +66,7 @@
                         }
                 }
             }
-
-            bool isValidMove(sf::Vector2i from, sf::Vector2i to) override {            
-                return false;
-            }
+            bool isValidMove(sf::Vector2i from, sf::Vector2i to, Board &board) override;
     };
 
     class Knight : public Piece {
@@ -82,9 +88,7 @@
             }
         }
 
-        bool isValidMove(sf::Vector2i from, sf::Vector2i to) override {            
-                return true;
-        }
+        bool isValidMove(sf::Vector2i from, sf::Vector2i to, Board &board) override;
     };
 
     class Bishop : public Piece {
@@ -106,9 +110,7 @@
             }
         }
 
-        bool isValidMove(sf::Vector2i from, sf::Vector2i to) override {            
-                return true;
-        }
+        bool isValidMove(sf::Vector2i from, sf::Vector2i to, Board &board) override;
     };
 
     class Queen : public Piece {
@@ -130,9 +132,7 @@
             }
         }
 
-        bool isValidMove(sf::Vector2i from, sf::Vector2i to) override {            
-                return true;
-        }
+        bool isValidMove(sf::Vector2i from, sf::Vector2i to, Board &board) override;
     };
 
     class King : public Piece {
@@ -154,12 +154,9 @@
             }
         }
 
-        bool isValidMove(sf::Vector2i from, sf::Vector2i to) override {            
-                return true;
-        }
+        bool isValidMove(sf::Vector2i from, sf::Vector2i to, Board &board) override;
     };
 
-    
     class Rook : public Piece {
         public:
             explicit Rook(Color c) 
@@ -180,9 +177,7 @@
                     }
                 } 
 
-            bool isValidMove(sf::Vector2i from, sf::Vector2i to) override {            
-                return true;
-            }
+            bool isValidMove(sf::Vector2i from, sf::Vector2i to, Board &board) override;
     };
 
         class Board {
@@ -227,12 +222,29 @@
                         setPiece({0,7}, new Rook(Piece::Color::Black));
                         setPiece({7,7}, new Rook(Piece::Color::Black));
 
-                        setPiece({4,7}, new Queen(Piece::Color::Black));
-                        setPiece({3,7}, new King(Piece::Color::Black));
+                        setPiece({3,7}, new Queen(Piece::Color::Black));
+                        setPiece({4,7}, new King(Piece::Color::Black));
 
                         
+                    }                    
+
+                    void printBoard() {
+                        std::cout << "  0 1 2 3 4 5 6 7" << std::endl; // Spalten-Indizes
+                        for (int y = 0; y < 8; y++) {
+                            std::cout << y << " "; // Zeilen-Index
+                            for (int x = 0; x < 8; x++) {
+                                if (board[y][x] == nullptr) {
+                                    std::cout << ". "; // Leeres Feld
+                                } else {
+                                    // Hier könntest du später p->getSymbol() nutzen
+                                    std::cout << "P "; // 'P' für Piece (irgendeine Figur)
+                                }
+                            }
+                            std::cout << std::endl;
+                        }
+                        std::cout << "---------------" << std::endl;
                     }
-                    
+                                        
                     void setPiece(sf::Vector2i pos, Piece* piece) {
                         if(pos.x >=0 && pos.y>=0 && pos.x<8 && pos.y <8){
                             if(board[pos.y][pos.x] != nullptr){
@@ -250,7 +262,7 @@
                     }
 
                 void movePiece(sf::Vector2i from, sf::Vector2i to) {
-                    if(board[from.y][from.x]->isValidMove(from,to)){
+                    if(board[from.y][from.x]->isValidMove(from,to, *this)){
 
                         board[to.y][to.x] = board[from.y][from.x];
                         board[from.y][from.x] = nullptr;
@@ -283,9 +295,80 @@
                     return sf::Vector2i(x,y);
                 }
 
+                bool isPathBlocked(sf::Vector2i from, sf::Vector2i to) { //PATH BLOCKED = TRUE
+                    int xDiff = to.x - from.x;
+                    int yDiff = to.y - from.y;
 
+                    int stepX = (xDiff == 0) ? 0 : (xDiff > 0 ? 1 : -1);
+                    int stepY = (yDiff == 0) ? 0 : (yDiff > 0 ? 1 : -1);
+
+                    int currX = from.x + stepX;
+                    int currY = from.y + stepY;
+
+                    while(currX != to.x || currY != to.y) {
+                        if(board[currY][currX] != nullptr) {
+                            return true;
+                        }
+
+                        currX += stepX;
+                        currY += stepY;
+                    }
+                    return false;
+                }
         };
 
+
+        bool Pawn::isValidMove(sf::Vector2i from, sf::Vector2i to, Board& board){  
+                int direction = (color == Piece::Color::White) ? 1 : -1;
+                int yDiff = to.y - from.y;
+                int xDiff = from.x-to.x;
+                
+                //normal move / first move
+                if (xDiff == 0) {
+                    if(isFirstMove) {
+                        if(board.getPieceFromGrid(to) == nullptr && !(board.isPathBlocked(from, to))){
+                            if(yDiff==2*direction || yDiff == 1 * direction) {
+                                isFirstMove = false;
+                                return true; 
+                            }   
+                        }
+                    } else if (yDiff == (1*direction) && board.getPieceFromGrid(to) == nullptr){  
+                        return true;
+                    }
+                    //attack
+                } 
+                else if (std::abs(xDiff) == 1 && yDiff == direction) {
+                    Piece* target = board.getPieceFromGrid(to);
+                    // Es MUSS ein Gegner dort stehen
+                    if (target != nullptr && target->getColor() != this->color) {
+                        isFirstMove = false;
+                        return true;
+                    }
+                }
+                
+                 
+                
+                return false;
+            };
+
+        bool Knight::isValidMove(sf::Vector2i from, sf::Vector2i to, Board& board){
+            return true;
+        }
+
+        bool Bishop::isValidMove(sf::Vector2i from, sf::Vector2i to, Board& board){
+                return true;
+        }
+        bool Queen::isValidMove(sf::Vector2i from, sf::Vector2i to, Board& board){
+                return true;
+        }
+
+        bool King::isValidMove(sf::Vector2i from, sf::Vector2i to, Board& board){
+                return true;
+        }
+
+        bool Rook::isValidMove(sf::Vector2i from, sf::Vector2i to, Board& board){
+                return true;
+        }
 
     int main() {
         //init game
@@ -399,6 +482,7 @@
                         } else {
                             if (selectedGridPos != clickedGridPos) {
                                 board.movePiece(selectedGridPos, clickedGridPos);
+                                board.printBoard();
                             }
                             isPieceSelected = false; 
                         }
@@ -407,6 +491,8 @@
             
                 }
         }
+
+            
             //Cursor text / position
             sf::Vector2i mousePixel = sf::Mouse::getPosition(window);
             sf::Vector2f mouseWorld = window.mapPixelToCoords(mousePixel);
@@ -473,7 +559,6 @@
                     }
                 }
             }
-
 
             window.draw(cursorText);
             window.display(); //show window
