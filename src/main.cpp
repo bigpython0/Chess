@@ -264,6 +264,11 @@
                 void movePiece(sf::Vector2i from, sf::Vector2i to) {
                     if(board[from.y][from.x]->isValidMove(from,to, *this)){
 
+                        
+                        if(board[to.y][to.x] != nullptr) {
+                            delete board[to.y][to.x];
+                        }
+
                         board[to.y][to.x] = board[from.y][from.x];
                         board[from.y][from.x] = nullptr;
 
@@ -352,7 +357,25 @@
             };
 
         bool Knight::isValidMove(sf::Vector2i from, sf::Vector2i to, Board& board){
-            return true;
+            int xDiff = to.x - from.x;
+            int yDiff = to.y - from.y;
+            
+            //safety from nullptr exception
+            if(to.x < 0 || to.x > 7 || from.y < 0 || from.y > 7) {
+                return false;
+            }
+
+            Piece* piece = board.getPieceFromGrid(to);
+            if( piece != nullptr && piece->getColor() == this->color) {
+                return false;
+            }
+
+            if((std::abs(xDiff) == 1 && std::abs(yDiff) == 2 ) || std::abs(xDiff) == 2 && std::abs(yDiff) == 1 ) {
+                return true;
+            }
+
+            return false;
+
             
         }
 
@@ -393,7 +416,22 @@
         }
 
         bool King::isValidMove(sf::Vector2i from, sf::Vector2i to, Board& board){
-                return true;
+                int xDiff = to.x - from.x;
+                xDiff = std::abs(xDiff);
+                int yDiff = to.y - from.y;
+                yDiff = std::abs(yDiff);
+
+                Piece* piece = board.getPieceFromGrid(to);
+                    if( piece != nullptr && piece->getColor() == this->color) {
+                        return false;
+                    }
+
+                //NOT YET CHECKING FOR IF HES IN CHECK
+
+                if(( xDiff == 1 || yDiff == 1 || xDiff + yDiff == 2 )&& xDiff <2 && yDiff < 2) {
+                    return true;
+                }
+                return false;
         }
 
         bool Rook::isValidMove(sf::Vector2i from, sf::Vector2i to, Board& board){
@@ -521,7 +559,7 @@
                             }
                         } else {
                             if (selectedGridPos != clickedGridPos) {
-                                board.movePiece(selectedGridPos, clickedGridPos);
+                                board.movePiece(selectedGridPos, clickedGridPos); //movePiece then checks for valid move
                                 board.printBoard();
                             }
                             isPieceSelected = false; 
