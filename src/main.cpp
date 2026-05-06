@@ -5,6 +5,7 @@
     #include <list>
     #include <SFML/System.hpp>
     #include <SFML/Window.hpp>
+    #include <map>
 
     class Board;
 
@@ -243,7 +244,7 @@
                     setPiece({3,7}, new Queen(Piece::Color::Black));
                     setPiece({4,7}, new King(Piece::Color::Black));
                     blackKingPos = {4,7};
-                }     
+                }
                 
                 Piece::Color getCurrentTurn() {
                     return currentTurn;
@@ -257,8 +258,13 @@
                     }
                 }               
 
-                void printBoard() {
+                void printBoard() { //how its actually STORED, NOT how its RENDERED
                     std::cout << "  0 1 2 3 4 5 6 7" << std::endl; // Spalten-Indizes
+                    static std::map<Piece::Type, char> symbols = {
+                        {Piece::Type::King, 'K'}, {Piece::Type::Queen, 'Q'}, {Piece::Type::Knight, 'N'},
+                        {Piece::Type::Bishop, 'B'}, {Piece::Type::Rook, 'R'}, {Piece::Type::Pawn, 'P'}
+                    };
+
                     for (int y = 0; y < 8; y++) {
                         std::cout << y << " "; // Zeilen-Index
                         for (int x = 0; x < 8; x++) {
@@ -266,7 +272,8 @@
                                 std::cout << ". "; // Leeres Feld
                             } else {
                                 // Hier könntest du später p->getSymbol() nutzen
-                                std::cout << "P "; // 'P' für Piece (irgendeine Figur)
+                                //char pieceSymbol = board[][];
+                                std::cout << symbols[board[y][x]->getType()] << " "; // 'P' für Piece (irgendeine Figur)
                             }
                         }
                         std::cout << std::endl;
@@ -287,7 +294,6 @@
                             offsetY + drawY*tileSize);
                         }
                     }
-                    
                 }
 
                 King* getKing() { //gives the King who's move it would be --> currentTurn King
@@ -297,158 +303,196 @@
                         return dynamic_cast<King*>(board[blackKingPos.y][blackKingPos.x]);
                     }
                 }
-            
+                
                 void movePiece(sf::Vector2i from, sf::Vector2i to) {
-                Piece* currentPiece = board[from.y][from.x]; 
+                    Piece* currentPiece = board[from.y][from.x];
 
-                King* currentKing = getKing();
-                if(isKingChecked() && currentPiece->getType() != Piece::Type::King){
-                    std::cout << "King in check" << std::endl;
-                    return;
+                    if(currentPiece == nullptr || currentPiece->getColor() != currentTurn) return;
+
+                    if(currentPiece->isValidMove(from,to, *this)){
+                        Piece* capturedPiece = board[to.y][to.x]; 
+                        
+                        sf::Vector2i oldKingPos = (currentTurn == Piece::Color::White) ? whiteKingPos : blackKingPos;
+
+                        board[to.y][to.x] = currentPiece;
+                        board[from.y][from.x] = nullptr;
+
+                        if(currentPiece->getType() == Piece::Type::King) {
+                            (currentTurn == Piece::Color::White) ? (whiteKingPos = to) : (blackKingPos = to);
+                        }
+
+                        if(isKingChecked()) {
+                            //move invalid
+                            board[from.y][from.x] = currentPiece;
+                            board[to.y][to.x] = capturedPiece;
+
+                            if(currentPiece->getType() == Piece::Type::King) {
+                                (currentTurn == Piece::Color::White) ? (whiteKingPos = oldKingPos) : (blackKingPos = oldKingPos); 
+                            }
+                        }
+
+                        float newPosX = offsetX + static_cast<float>(to.x) * tileSize;
+                        float newPosY = offsetY + static_cast<float>(7-to.y) * tileSize;
+                        board[to.y][to.x]->updateSpritePosition(newPosX, newPosY);
+
+                        if(capturedPiece != nullptr) {
+                            delete capturedPiece; //free up space from dead piece
+                        } 
+
+                        switchTurn();
+                    }
                 }
 
-                if(currentPiece != nullptr && currentPiece->getColor() != currentTurn) {
-                    return;
+                Piece* getPieceFromMouse(sf::Vector2i pos) { //input is raw mouse pos, not converted yet
+                    sf::Vector2i convertedPos = mouseToGrid(pos);
+                    return board[convertedPos.y][convertedPos.x];
                 }
-                if(currentPiece->isValidMove(from,to, *this)){
 
-                    
-                    if(board[to.y][to.x] != nullptr) {
-                        delete board[to.y][to.x];
+                Piece* getPieceFromGrid(sf::Vector2i pos) { //input is board pos, already converted
+                    return board[pos.y][pos.x];
+                }
+
+                sf::Vector2i mouseToGrid(sf::Vector2i mP) {
+                    int x = (mP.x - offsetX) / tileSize;
+                    int y = (mP.y - offsetY) / tileSize;
+
+                    if(x<0) x=0; else if (x>7) x=7;
+                    if(y<0) y=0; else if (y>7) y=7;
+
+                    y = 7-y;
+
+                    return sf::Vector2i(x,y);
+                }
+
+                sf::Vector2f gridToPosition(sf::Vector2f gridPos) {
+                    sf::Vector2f position;
+
+                    position.x = offsetX + (gridPos.x * tileSize);
+                    position.y = offsetY + ((7.f - gridPos.y) * tileSize);
+
+                    return position;
+                }
+
+                bool isPathBlocked(sf::Vector2i from, sf::Vector2i to) { //PATH BLOCKED = TRUE
+                    int xDiff = to.x - from.x;
+                    int yDiff = to.y - from.y;
+
+                    int stepX = (xDiff == 0) ? 0 : (xDiff > 0 ? 1 : -1);
+                    int stepY = (yDiff == 0) ? 0 : (yDiff > 0 ? 1 : -1);
+
+                    int currX = from.x + stepX;
+                    int currY = from.y + stepY;
+
+                    while(currX != to.x || currY != to.y) {
+                        if(board[currY][currX] != nullptr) {
+                            return true;
+                        }
+
+                        currX += stepX;
+                        currY += stepY;
+                    }
+                    return false;
+                }
+
+                bool isSquareInCheck(sf::Vector2i square) {
+                //Rook / Queen steps
+                    //X AXIS
+                    for(int direction = -1; direction <=2; direction += 2) {
+                        for(int i = square.x + direction; 0<=i && i<= 7; i+=(direction)*(1)) { 
+                            Piece* foundPiece = board[square.y][i];
+                            if(foundPiece != nullptr) {
+                                if(foundPiece->getType() == Piece::Type::Queen || foundPiece->getType() == Piece::Type::Rook) {
+                                    if(foundPiece->getColor() != currentTurn) {
+                                        return true;
+                                    }
+                                }
+                                break;
+                            }
+                        }
                     }
 
-                    board[to.y][to.x] = board[from.y][from.x];
-                    board[from.y][from.x] = nullptr;
+                    //Y AXIS
+                    for(int direction = -1; direction <=2; direction += 2) {
+                        for(int i = square.y + direction;0<=i && i<= 7; i+=(direction)*(1)) { 
+                            Piece* foundPiece = board[i][square.x];
+                            if(foundPiece != nullptr) {
+                                if(foundPiece->getType() == Piece::Type::Queen || foundPiece->getType() == Piece::Type::Rook) {
+                                    if(foundPiece->getColor() != currentTurn) {
+                                        return true;
+                                    }
+                                }
+                                break;
+                            }
+                        }
+                    }
 
-                    float newPosX = offsetX + static_cast<float>(to.x) * tileSize;
-                    float newPosY = offsetY + static_cast<float>(7-to.y) * tileSize;
+                //bishop / queen // DIAGONAL
+                for(int dirX : {-1, 1}) {
+                    for(int dirY : {-1,1}) {
+                        for(int dist = 1; dist <8 ; dist++) {
+                            int tx = square.x + (dirX * dist);
+                            int ty = square.y + (dirY*dist);
 
-                    board[to.y][to.x]->updateSpritePosition(newPosX, newPosY); 
+                            if(tx < 0 || tx > 7 || ty < 0 || ty > 7) break;
 
-                    switchTurn();
+                            Piece* foundPiece = board[ty][tx];
+                            if(foundPiece != nullptr) {
+                                if(foundPiece->getType() == Piece::Type::Queen || foundPiece->getType() == Piece::Type::Bishop) {
+                                    if(foundPiece->getColor() != currentTurn) {
+                                        return true;
+                                    }
+                                }
+                                break;
+                            }
+                        }
+                    }
                 }
-            }
+                //knight 
+                sf::Vector2i knightMoves[] = {
+                    {2,1}, {2,-1}, {-2,1}, {-2,-1},
+                    {1,2}, {1,-2}, {-1,2}, {-1,-2}
+                };
 
-            Piece* getPieceFromMouse(sf::Vector2i pos) { //input is raw mouse pos, not converted yet
-                sf::Vector2i convertedPos = mouseToGrid(pos);
-                return board[convertedPos.y][convertedPos.x];
-            }
-
-            Piece* getPieceFromGrid(sf::Vector2i pos) { //input is board pos, already converted
-                return board[pos.y][pos.x];
-            }
-
-            sf::Vector2i mouseToGrid(sf::Vector2i mP) {
-                int x = (mP.x - offsetX) / tileSize;
-                int y = (mP.y - offsetY) / tileSize;
-
-                if(x<0) x=0; else if (x>7) x=7;
-                if(y<0) y=0; else if (y>7) y=7;
-
-                y = 7-y;
-
-                return sf::Vector2i(x,y);
-            }
-
-            sf::Vector2f gridToPosition(sf::Vector2f gridPos) {
-                sf::Vector2f position;
-
-                position.x = offsetX + (gridPos.x * tileSize);
-                position.y = offsetY + ((7.f - gridPos.y) * tileSize);
-
-                return position;
-            }
-
-            bool isPathBlocked(sf::Vector2i from, sf::Vector2i to) { //PATH BLOCKED = TRUE
-                int xDiff = to.x - from.x;
-                int yDiff = to.y - from.y;
-
-                int stepX = (xDiff == 0) ? 0 : (xDiff > 0 ? 1 : -1);
-                int stepY = (yDiff == 0) ? 0 : (yDiff > 0 ? 1 : -1);
-
-                int currX = from.x + stepX;
-                int currY = from.y + stepY;
-
-                while(currX != to.x || currY != to.y) {
-                    if(board[currY][currX] != nullptr) {
+                for(const auto& move : knightMoves) {
+                    int x = square.x + move.x;
+                    int y = square.y + move.y; 
+                    if( x < 0 || x > 7 || y < 0 || y > 7) continue;
+                    Piece* foundPiece = board[y][x];
+                    if(foundPiece != nullptr && foundPiece->getType() == Piece::Type::Knight && foundPiece->getColor() != currentTurn) {
                         return true;
                     }
-
-                    currX += stepX;
-                    currY += stepY;
                 }
+
+                //PAWN
+                int direction = currentTurn == Piece::Color::White ? 1 : -1;
+                for(int i : {-1, 1}) {
+                    int targetY = square.y + (direction * 1);
+                    int targetX = square.x + i;
+                    if(targetY < 0 || targetY > 7 || targetX < 0 || targetX > 7) continue;
+                    Piece* potentialPawn = board[targetY][targetX];
+                    if(potentialPawn != nullptr && potentialPawn->getType() == Piece::Type::Pawn
+                        && potentialPawn->getColor()!=currentTurn) {
+                        return true;
+                    }
+                }
+
                 return false;
-            }
-
-            bool isSquareInCheck(sf::Vector2i square) {
-            //Rook / Queen steps
-                //X AXIS
-                for(int direction = -1; direction <=2; direction += 2) {
-                    for(int i = square.x + direction; 0<=i && i<= 7; i+=(direction)*(1)) { 
-                        Piece* foundPiece = board[square.y][i];
-                        if(foundPiece != nullptr) {
-                            if(foundPiece->getType() == Piece::Type::Queen || foundPiece->getType() == Piece::Type::Rook) {
-                                if(foundPiece->getColor() != currentTurn) {
-                                    return true;
-                                }
-                            }
-                            break;
-                        }
-                    }
-                }
-
-                //Y AXIS
-                for(int direction = -1; direction <=2; direction += 2) {
-                    for(int i = square.y + direction;0<=i && i<= 7; i+=(direction)*(1)) { 
-                        Piece* foundPiece = board[i][square.x];
-                        if(foundPiece != nullptr) {
-                            if(foundPiece->getType() == Piece::Type::Queen || foundPiece->getType() == Piece::Type::Rook) {
-                                if(foundPiece->getColor() != currentTurn) {
-                                    return true;
-                                }
-                            }
-                            break;
-                        }
-                    }
-                }
-
-            //bishop / queen // DIAGONAL
-            for(int dirX : {-1, 1}) {
-                for(int dirY : {-1,1}) {
-                    for(int dist = 1; dist <8 ; dist++) {
-                        int tx = square.x + (dirX * dist);
-                        int ty = square.y + (dirY*dist);
-
-                        if(tx < 0 || tx > 7 || ty < 0 || ty > 7) break;
-
-                        Piece* foundPiece = board[ty][tx];
-                        if(foundPiece != nullptr) {
-                            if(foundPiece->getType() == Piece::Type::Queen || foundPiece->getType() == Piece::Type::Bishop) {
-                                if(foundPiece->getColor() != currentTurn) {
-                                    return true;
-                                }
-                            }
-                            break;
-                        }
-                    }
-                }
-            } 
-            }
-            
-            bool isKingChecked(){
-                Piece* currentKing = getKing();
-                sf::Vector2i KingPos;
-                if(currentKing->getColor() == Piece::Color::White) {
-                    KingPos = whiteKingPos;
-                } else {
-                    KingPos = blackKingPos;
                 }
                 
-                if(isSquareInCheck(KingPos)) {
-                    return true;
+                bool isKingChecked(){
+                    Piece* currentKing = getKing();
+                    sf::Vector2i KingPos;
+                    if(currentKing->getColor() == Piece::Color::White) {
+                        KingPos = whiteKingPos;
+                    } else {
+                        KingPos = blackKingPos;
+                    }
+                    
+                    if(isSquareInCheck(KingPos)) {
+                        return true;
+                    }
+                    return false;
                 }
-                return false;
-            }
     };
 
 
@@ -555,17 +599,12 @@
                     return false;
                 }
 
-            //NOT YET CHECKING FOR IF HES IN CHECK
-
             if(( xDiff == 1 || yDiff == 1 || xDiff + yDiff == 2 )&& xDiff <2 && yDiff < 2) {
                 return true;
             }
             return false;
     }
 
-
-
-        
     bool Rook::isValidMove(sf::Vector2i from, sf::Vector2i to, Board& board){
             int xDiff = to.x - from.x;
             int yDiff = to.y - from.y;
@@ -731,9 +770,7 @@
                             }
                             isPieceSelected = false;
                         }
-
                     }
-            
                 }
         }
 
