@@ -384,6 +384,7 @@
                         } 
                         //std::cout << "gonna switch turns";
 
+                        
                         switchTurn();
                     }
                 }
@@ -735,6 +736,10 @@
         bool isPieceSelected = false;
         sf::Vector2i selectedGridPos;
 
+        //possible Moves
+        std::vector<sf::CircleShape> possibleMoves;
+
+
         //EVENTS
         while (window.isOpen()) {  
             while (const std::optional event = window.pollEvent()) {
@@ -781,10 +786,26 @@
                         sf::Vector2i clickedGridPos = board.mouseToGrid(mousePos);
 
                         if (!isPieceSelected ) {
+                            possibleMoves.clear();
                             Piece* clickedPiece = board.getPieceFromGrid(clickedGridPos);
                             if (clickedPiece != nullptr && clickedPiece->getColor() == board.getCurrentTurn()) {
                                 isPieceSelected = true;
                                 selectedGridPos = clickedGridPos;
+
+                                for(int y = 0; y<8; y++) {
+                                    for(int x = 0; x<8;x++) {
+                                        if(clickedPiece->isValidMove(selectedGridPos, {x,y}, board)) {
+                                            sf::CircleShape circle;
+                                            float circleRadius = tileSize / 6.f;
+                                            float centerOffset = (tileSize / 2) - circleRadius;
+                                            circle.setPosition({posX + (x * tileSize) + centerOffset, (7-y) * tileSize + centerOffset});
+                                            circle.setFillColor(sf::Color(30,30,30,100));
+                                            circle.setRadius(circleRadius);
+
+                                            possibleMoves.push_back(circle);
+                                        } 
+                                    }
+                                }
 
                                 lastMouseClick = sf::Mouse::getPosition(window);
                                 sf::Vector2f snappedPos;
@@ -815,6 +836,7 @@
                                 //std::cout << targetPosition.y << " ist y und " << targetPosition.x << "ist x" << std::endl; 
                                 board.printBoard();
                             }
+                            possibleMoves.clear();
                             isPieceSelected = false;
                         }
                     }
@@ -866,14 +888,23 @@
             highlightRec.setSize({tileSize, tileSize});    
 
             //*RENDER_______________________________________________________________________________________
-            if(board.getCurrentTurn() == Piece::Color::White) {
-                window.clear(sf::Color(100, 100, 100));
+            if(board.isKingChecked()) {
+                window.clear(sf::Color(150,20,20));
             } else {
-                window.clear(sf::Color(30, 30, 30));
+                if(board.getCurrentTurn() == Piece::Color::White) {
+                    window.clear(sf::Color(100, 100, 100));
+                } else {
+                    window.clear(sf::Color(30, 30, 30));
+                }
             }
+            
             
             for (const auto& square : boardSquares){
                 window.draw(square);
+            }
+
+            for(const auto& circle : possibleMoves) {
+                window.draw(circle);
             }
 
             if(showHighlightRec) {
