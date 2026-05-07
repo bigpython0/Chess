@@ -201,6 +201,7 @@
             float offsetX;
             float offsetY;
             float tileSize;
+            bool rightToCastle = true;
             Piece::Color currentTurn = Piece::Color::White;
         
         public:
@@ -631,26 +632,29 @@
         sf::RenderWindow window(sf::VideoMode({screenWidth, screenHeight}), "Chess - SFML 3");
         window.setFramerateLimit(60);
 
-        //calculate sprite size
-        float chessboardPngSize = 1028.f;
-        float spriteFactor = (static_cast<float>(screenHeight)/chessboardPngSize)-0.2f;
+        //create chess board
+        float tileSize = static_cast<float>(screenHeight / 8.f);
+        float boardWidth = tileSize * 8.f;
+        float posX = static_cast<float>(screenWidth - boardWidth) / 2.f;
 
-        //insert chessboard
-        sf::Texture texture;
-        if (!texture.loadFromFile("src/images/chessboard.png")) {
-            std::cout << "couldnt load image" << std::endl;
-            return -1;
+        std::vector<sf::RectangleShape> boardSquares;
+        sf::Color lightColor(240, 238, 210);
+        sf::Color darkColor(119, 150, 86);
+
+        for(int y = 0; y < 8; y++) {
+            for(int x = 0; x<8; x++) {
+                sf::RectangleShape square({tileSize, tileSize});
+
+                square.setPosition({posX + x * tileSize, y * tileSize});
+
+                if((x+y) % 2 == 0) {
+                    square.setFillColor(lightColor);
+                } else {
+                    square.setFillColor(darkColor);
+                }
+                boardSquares.push_back(square);
+            }
         }
-
-        //_____________SPRITE creation (chessboaed?)_____________
-        sf::Sprite boardSprite(texture);
-        sf::FloatRect bounds = boardSprite.getLocalBounds(); 
-        sf::FloatRect globalBounds = boardSprite.getGlobalBounds(); 
-        float rightBound = bounds.position.x + bounds.size.x;
-        float factor = static_cast<float>(screenHeight) / bounds.size.y;
-        boardSprite.setScale({factor, factor});
-        float posX = (static_cast<float>(screenWidth) - boardSprite.getGlobalBounds().size.x) / 2.f;
-        boardSprite.setPosition({posX, 0.f});   
 
         //cursor text
         sf::Font font;
@@ -675,19 +679,18 @@
         //MOVE PIECE FROM HIGHLIGHT
         sf::RectangleShape originSquareHighlight;
         originSquareHighlight.setFillColor(sf::Color(50,75,200, 200));
-        float size = boardSprite.getGlobalBounds().size.x / 8.f;
-        originSquareHighlight.setSize({size,size+2});
+        originSquareHighlight.setSize({tileSize, tileSize});
 
         //MOVE PIECE TO HIGHLIGHT
         sf::RectangleShape targetSquareHighlight;
         targetSquareHighlight.setFillColor(sf::Color(50,75,200, 150));
-        targetSquareHighlight.setSize({size,size});
+        targetSquareHighlight.setSize({tileSize,tileSize});
         
         sf::Vector2i lastMouseClick = {0,0};
         bool showHighlightRec = false;
         std::list<sf::Vector2i> highlightRecPositions; 
 
-        Board board(posX, 0, boardSprite.getGlobalBounds().size.x/8.f);
+        Board board(posX, 0, tileSize);
 
         bool isPieceSelected = false;
         sf::Vector2i selectedGridPos;
@@ -704,8 +707,8 @@
                         lastMouseClick = sf::Mouse::getPosition(window);
                         bool currentMouseClickInList = false;
                         sf::Vector2i snappedPos;
-                        snappedPos.x = static_cast<float>(((lastMouseClick.x)/100) * 100);
-                        snappedPos.y = static_cast<float>(((lastMouseClick.y)/100) * 100);
+                        snappedPos.x = static_cast<float>(((lastMouseClick.x)/tileSize) * tileSize);
+                        snappedPos.y = static_cast<float>(((lastMouseClick.y)/tileSize) * tileSize);
 
                         bool alreadyExists = false;
                         auto hBegin = highlightRecPositions.begin();
@@ -745,8 +748,8 @@
 
                                 lastMouseClick = sf::Mouse::getPosition(window);
                                 sf::Vector2f snappedPos;
-                                snappedPos.x = static_cast<float>(((lastMouseClick.x)/100) * 100);
-                                snappedPos.y = static_cast<float>(((lastMouseClick.y)/100) * 100);
+                                snappedPos.x = static_cast<float>(((lastMouseClick.x)/tileSize) * tileSize);
+                                snappedPos.y = static_cast<float>(((lastMouseClick.y)/tileSize) * tileSize);
 
                                 originSquareHighlight.setPosition({snappedPos.x+1, snappedPos.y+1});
                                 // originSquareHighlight.setFillColor()
@@ -756,8 +759,8 @@
                             if (targetPiece != nullptr && targetPiece->getColor() == board.getCurrentTurn()) {
                                 selectedGridPos = clickedGridPos;
                                 sf::Vector2f snappedPos;
-                                snappedPos.x = static_cast<float>(((selectedGridPos.x)/100) * 100);
-                                snappedPos.y = static_cast<float>(((selectedGridPos.y)/100) * 100);
+                                snappedPos.x = static_cast<float>(((selectedGridPos.x)/tileSize) * tileSize);
+                                snappedPos.y = static_cast<float>(((selectedGridPos.y)/tileSize) * tileSize);
 
                                 originSquareHighlight.setPosition({snappedPos.x+1, snappedPos.y+1});                                
                             } else {
@@ -787,8 +790,8 @@
                 //mouseWorld.x - posX;
                 if(mouseWorld.x<posX) {
                     mouseWorld.x = 0;
-                } else if(mouseWorld.x>rightBound-posX-18) { //idk why 18 but it works
-                    mouseWorld.x = rightBound-posX-18;
+                } else if(mouseWorld.x> posX + boardWidth) { //idk why 18 but it works
+                    mouseWorld.x = posX + boardWidth;
                 }
 
                 if(mouseWorld.y<0) {
@@ -805,8 +808,8 @@
             int mX = mouseWorld.x; //just to make it simpler
             int mY = mouseWorld.y;
 
-            int mouseYIndex = 8-(int)mY / 100 ;
-            int mouseXIndex = (int)mX / 100 - 2;
+            int mouseYIndex = 8-(int)mY / tileSize ;
+            int mouseXIndex = (int)mX / tileSize;
             char mouseXField = 'A' + mouseXIndex;
 
             bool mouseInBounds = !(mY >= screenHeight || mY <= 0 || mouseXIndex < 0 || mouseXIndex > 7);
@@ -820,18 +823,18 @@
 
             cursorText.setString((board.getCurrentTurn() == Piece::Color::White ) ? "White's \n Turn" : "Black's \n turn");
 
-            highlightRec.setSize({101,101});    
+            highlightRec.setSize({tileSize, tileSize});    
 
             //*RENDER_______________________________________________________________________________________
-            //should be according to turn
             if(board.getCurrentTurn() == Piece::Color::White) {
                 window.clear(sf::Color(100, 100, 100));
             } else {
                 window.clear(sf::Color(30, 30, 30));
             }
             
-
-            window.draw(boardSprite);
+            for (const auto& square : boardSquares){
+                window.draw(square);
+            }
 
             if(showHighlightRec) {
                 if(!highlightRecPositions.empty()) {
