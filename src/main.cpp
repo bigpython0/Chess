@@ -329,6 +329,7 @@
                             if(currentPiece->getType() == Piece::Type::King) {
                                 (currentTurn == Piece::Color::White) ? (whiteKingPos = oldKingPos) : (blackKingPos = oldKingPos); 
                             }
+                            return;
                         }
 
                         float newPosX = offsetX + static_cast<float>(to.x) * tileSize;
@@ -336,8 +337,11 @@
                         board[to.y][to.x]->updateSpritePosition(newPosX, newPosY);
 
                         if(capturedPiece != nullptr) {
+                            //std::cout << "gonna delete";
                             delete capturedPiece; //free up space from dead piece
+                          //  std::cout << "even deleted memory";
                         } 
+                        //std::cout << "gonna switch turns";
 
                         switchTurn();
                     }
@@ -818,8 +822,14 @@
 
             highlightRec.setSize({101,101});    
 
-            //RENDER
-            window.clear(sf::Color(45, 45, 45));
+            //*RENDER_______________________________________________________________________________________
+            //should be according to turn
+            if(board.getCurrentTurn() == Piece::Color::White) {
+                window.clear(sf::Color(100, 100, 100));
+            } else {
+                window.clear(sf::Color(30, 30, 30));
+            }
+            
 
             window.draw(boardSprite);
 
