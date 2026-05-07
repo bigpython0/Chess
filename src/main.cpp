@@ -7,14 +7,22 @@
     #include <SFML/Window.hpp>
     #include <map>
 
+    sf::Vector2f castToFloat(sf::Vector2i vector) {
+        float newX = static_cast<float>(vector.x);
+        float newY = static_cast<float>(vector.y);
+        return {newX, newY};
+    }
+
     class Board;
 
     class Piece {
         public:
         enum class Color {White, Black};
         enum class Type {Pawn, Bishop, Knight, Rook, Queen, King};
-
-        
+        sf::Vector2f visualStartPos;
+        sf::Vector2f visualTargetPos;
+        bool isAnimating = false;
+        int currentFrame;
 
         protected: 
             Type type;
@@ -26,6 +34,31 @@
             Piece(Color c, Type t) 
             : color(c), type(t),  sprite(texture){}
             virtual ~Piece() = default;
+
+            void update() {
+                if(!isAnimating) return;
+                int totalFrames = 8;
+                
+                if(currentFrame <= totalFrames) {
+                    sf::Vector2f newPos;
+                    float progress = static_cast<float>(currentFrame) / totalFrames;
+                    newPos = visualStartPos + (visualTargetPos - visualStartPos) * progress;
+                    sprite.setPosition(newPos);
+                    currentFrame++;
+                } else {
+                    sprite.setPosition(visualTargetPos);
+                    isAnimating = false;
+                    return;
+                }
+            }
+
+            void startAnimation(sf::Vector2f start, sf::Vector2f target) {
+                visualStartPos = start;
+                visualTargetPos = target;
+                currentFrame = 0;
+                isAnimating = true;
+
+            }
 
             Piece::Type getType() {
                 return type;
@@ -49,7 +82,13 @@
                 window.draw(sprite);
             }
 
-            void updateSpritePosition(float posX, float posY) {
+            void updateAnimation(sf::Vector2i to) {
+                float posX = static_cast<float>(to.x);
+                float posY = static_cast<float>(to.y);
+                sprite.setPosition({posX, posY});
+            }
+
+            void setSpritePosition(float posX, float posY) {
                 sprite.setPosition({posX, posY});
             }
     };
@@ -291,7 +330,7 @@
                         if(piece) {
                             piece->scaleToFit(tileSize);
                             int drawY = 7-pos.y;
-                            piece->updateSpritePosition(offsetX + pos.x * tileSize, 
+                            piece->setSpritePosition(offsetX + pos.x * tileSize, 
                             offsetY + drawY*tileSize);
                         }
                     }
@@ -335,7 +374,8 @@
 
                         float newPosX = offsetX + static_cast<float>(to.x) * tileSize;
                         float newPosY = offsetY + static_cast<float>(7-to.y) * tileSize;
-                        board[to.y][to.x]->updateSpritePosition(newPosX, newPosY);
+
+                        board[to.y][to.x]->startAnimation(gridToPosition(castToFloat((from))), gridToPosition(castToFloat(to)));
 
                         if(capturedPiece != nullptr) {
                             //std::cout << "gonna delete";
@@ -748,10 +788,10 @@
 
                                 lastMouseClick = sf::Mouse::getPosition(window);
                                 sf::Vector2f snappedPos;
-                                snappedPos.x = static_cast<float>(((lastMouseClick.x)/tileSize) * tileSize);
-                                snappedPos.y = static_cast<float>(((lastMouseClick.y)/tileSize) * tileSize);
+                                snappedPos.x = static_cast<float>(((lastMouseClick.x)/100) * 100);
+                                snappedPos.y = static_cast<float>(((lastMouseClick.y)/100) * 100); //should be tilesize but doesnt align
 
-                                originSquareHighlight.setPosition({snappedPos.x+1, snappedPos.y+1});
+                                originSquareHighlight.setPosition({snappedPos.x, snappedPos.y});
                                 // originSquareHighlight.setFillColor()
                             }
                         } else {
@@ -855,7 +895,8 @@
             for(int y = 0; y < 8; y++) {
                 for(int x = 0; x < 8; x++) {
                     Piece* piece = board.getPieceFromGrid({x,y});
-                    if(piece != nullptr) {
+                    if(piece) {
+                        piece->update();
                         piece->draw(window);
                     }
                 }
