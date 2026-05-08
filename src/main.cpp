@@ -116,6 +116,10 @@
                 }
             }
             bool isValidMove(sf::Vector2i from, sf::Vector2i to, Board &board) override;
+
+            void markMove() {
+                isFirstMove = false;
+            }
     };
 
     class Knight : public Piece {
@@ -185,6 +189,9 @@
     };
 
     class King : public Piece {
+        private:
+            bool isFirstMove = true;
+        
         public:
             bool isChecked;
 
@@ -207,9 +214,20 @@
         }
 
         bool isValidMove(sf::Vector2i from, sf::Vector2i to, Board &board) override;
+
+        bool checkIfFirstMove() {
+                return isFirstMove;
+            }
+
+            void markMove() {
+                isFirstMove = false;
+            }
     };
 
     class Rook : public Piece {
+        private:
+            bool isFirstMove = true;
+
         public:
             explicit Rook(Color c) 
                 : Piece(c, Type::Rook)
@@ -230,6 +248,14 @@
                 } 
 
             bool isValidMove(sf::Vector2i from, sf::Vector2i to, Board &board) override;
+
+            bool checkIfFirstMove() {
+                return isFirstMove;
+            }
+
+            void markMove() {
+                isFirstMove = false;
+            }
     };
 
     class Board {
@@ -240,7 +266,7 @@
             float offsetX;
             float offsetY;
             float tileSize;
-            bool rightToCastle = true;
+            bool gameOver = false;
             Piece::Color currentTurn = Piece::Color::White;
         
         public:
@@ -286,259 +312,353 @@
                     blackKingPos = {4,7};
                 }
                 
-                Piece::Color getCurrentTurn() {
-                    return currentTurn;
-                }
+            bool isGameOver() {
+                return gameOver;
+            }
 
-                void switchTurn() {
-                    if(currentTurn == Piece::Color::White) {
-                        currentTurn = Piece::Color::Black;
-                    } else {
-                        currentTurn = Piece::Color::White;
-                    }
-                }               
+            bool canPlayerMove() {
+                for(int y = 0; y < 8; y++) { //from = y,x
+                    for(int x = 0; x < 8; x++) {
+                        Piece* piece = board[y][x];
+                        if(piece == nullptr || piece->getColor() != currentTurn) continue;
 
-                void printBoard() { //how its actually STORED, NOT how its RENDERED
-                    std::cout << "  0 1 2 3 4 5 6 7" << std::endl; // Spalten-Indizes
-                    static std::map<Piece::Type, char> symbols = {
-                        {Piece::Type::King, 'K'}, {Piece::Type::Queen, 'Q'}, {Piece::Type::Knight, 'N'},
-                        {Piece::Type::Bishop, 'B'}, {Piece::Type::Rook, 'R'}, {Piece::Type::Pawn, 'P'}
-                    };
+                        for(int toY = 0; toY<8; toY++) { //to = i,k
+                            for(int toX = 0; toX<8; toX++) {
+                                if(piece->isValidMove({x,y}, {toX, toY}, *this)) {
+                                    Piece* capturedPiece = board[toY][toX];
 
-                    for (int y = 0; y < 8; y++) {
-                        std::cout << y << " "; // Zeilen-Index
-                        for (int x = 0; x < 8; x++) {
-                            if (board[y][x] == nullptr) {
-                                std::cout << ". "; // Leeres Feld
-                            } else {
-                                // Hier könntest du später p->getSymbol() nutzen
-                                //char pieceSymbol = board[][];
-                                std::cout << symbols[board[y][x]->getType()] << " "; // 'P' für Piece (irgendeine Figur)
+                                    sf::Vector2i oldKingPos = (currentTurn == Piece::Color::White) ? whiteKingPos : blackKingPos;
+
+                                    board[toY][toX] = piece;
+                                    board[y][x] = nullptr;
+
+                                    if(piece->getType() == Piece::Type::King) {
+                                        (currentTurn == Piece::Color::White) ? (whiteKingPos = {toX, toY}) : (blackKingPos = {toX,toY});
+                                    }
+
+                                    if(!isKingChecked()) {
+                                        board[toY][toX] = capturedPiece;
+                                        board[y][x] = piece;
+                                        if(piece->getType() == Piece::Type::King) {
+                                            (currentTurn == Piece::Color::White) ? (whiteKingPos = oldKingPos) : (blackKingPos = oldKingPos); 
+                                        }
+                                        return true;
+                                    } else { //undo move
+                                        board[toY][toX] = capturedPiece;
+                                        board[y][x] = piece;
+                                        if(piece->getType() == Piece::Type::King) {
+                                            (currentTurn == Piece::Color::White) ? (whiteKingPos = oldKingPos) : (blackKingPos = oldKingPos); 
+                                        }
+                                    }
+                                }
                             }
                         }
-                        std::cout << std::endl;
-                    }
-                    std::cout << "---------------" << std::endl;
-                }
-                                    
-                void setPiece(sf::Vector2i pos, Piece* piece) {
-                    if(pos.x >=0 && pos.y>=0 && pos.x<8 && pos.y <8){
-                        if(board[pos.y][pos.x] != nullptr){
-                        delete board[pos.y][pos.x];
-                    }
-                        board[pos.y][pos.x] = piece;
-                        if(piece) {
-                            piece->scaleToFit(tileSize);
-                            int drawY = 7-pos.y;
-                            piece->setSpritePosition(offsetX + pos.x * tileSize, 
-                            offsetY + drawY*tileSize);
-                        }
+                        
                     }
                 }
+                return false;
+            }
 
-                King* getKing() { //gives the King who's move it would be --> currentTurn King
-                    if(currentTurn == Piece::Color::White) {
-                        return dynamic_cast<King*>(board[whiteKingPos.y][whiteKingPos.x]);
-                    } else {
-                        return dynamic_cast<King*>(board[blackKingPos.y][blackKingPos.x]);
-                    }
+            bool isCheckmate() {
+                if(isKingChecked() && !canPlayerMove()) {
+                    return true;
                 }
                 
-                void movePiece(sf::Vector2i from, sf::Vector2i to) {
-                    Piece* currentPiece = board[from.y][from.x];
+                return false;
+            }
 
-                    if(currentPiece == nullptr || currentPiece->getColor() != currentTurn) return;
+            Piece::Color getCurrentTurn() {
+                return currentTurn;
+            }
 
-                    if(currentPiece->isValidMove(from,to, *this)){
-                        Piece* capturedPiece = board[to.y][to.x]; 
-                        
-                        sf::Vector2i oldKingPos = (currentTurn == Piece::Color::White) ? whiteKingPos : blackKingPos;
-
-                        board[to.y][to.x] = currentPiece;
-                        board[from.y][from.x] = nullptr;
-
-                        if(currentPiece->getType() == Piece::Type::King) {
-                            (currentTurn == Piece::Color::White) ? (whiteKingPos = to) : (blackKingPos = to);
-                        }
-
-                        if(isKingChecked()) {
-                            //move invalid
-                            board[from.y][from.x] = currentPiece;
-                            board[to.y][to.x] = capturedPiece;
-
-                            if(currentPiece->getType() == Piece::Type::King) {
-                                (currentTurn == Piece::Color::White) ? (whiteKingPos = oldKingPos) : (blackKingPos = oldKingPos); 
-                            }
-                            return;
-                        }
-
-                        float newPosX = offsetX + static_cast<float>(to.x) * tileSize;
-                        float newPosY = offsetY + static_cast<float>(7-to.y) * tileSize;
-
-                        board[to.y][to.x]->startAnimation(gridToPosition(castToFloat((from))), gridToPosition(castToFloat(to)));
-
-                        if(capturedPiece != nullptr) {
-                            //std::cout << "gonna delete";
-                            delete capturedPiece; //free up space from dead piece
-                          //  std::cout << "even deleted memory";
-                        } 
-                        //std::cout << "gonna switch turns";
-
-                        
-                        switchTurn();
-                    }
+            void switchTurn() {
+                if(currentTurn == Piece::Color::White) {
+                    currentTurn = Piece::Color::Black;
+                } else {
+                    currentTurn = Piece::Color::White;
                 }
+            }               
 
-                Piece* getPieceFromMouse(sf::Vector2i pos) { //input is raw mouse pos, not converted yet
-                    sf::Vector2i convertedPos = mouseToGrid(pos);
-                    return board[convertedPos.y][convertedPos.x];
-                }
-
-                Piece* getPieceFromGrid(sf::Vector2i pos) { //input is board pos, already converted
-                    return board[pos.y][pos.x];
-                }
-
-                sf::Vector2i mouseToGrid(sf::Vector2i mP) {
-                    int x = (mP.x - offsetX) / tileSize;
-                    int y = (mP.y - offsetY) / tileSize;
-
-                    if(x<0) x=0; else if (x>7) x=7;
-                    if(y<0) y=0; else if (y>7) y=7;
-
-                    y = 7-y;
-
-                    return sf::Vector2i(x,y);
-                }
-
-                sf::Vector2f gridToPosition(sf::Vector2f gridPos) {
-                    sf::Vector2f position;
-
-                    position.x = offsetX + (gridPos.x * tileSize);
-                    position.y = offsetY + ((7.f - gridPos.y) * tileSize);
-
-                    return position;
-                }
-
-                bool isPathBlocked(sf::Vector2i from, sf::Vector2i to) { //PATH BLOCKED = TRUE
-                    int xDiff = to.x - from.x;
-                    int yDiff = to.y - from.y;
-
-                    int stepX = (xDiff == 0) ? 0 : (xDiff > 0 ? 1 : -1);
-                    int stepY = (yDiff == 0) ? 0 : (yDiff > 0 ? 1 : -1);
-
-                    int currX = from.x + stepX;
-                    int currY = from.y + stepY;
-
-                    while(currX != to.x || currY != to.y) {
-                        if(board[currY][currX] != nullptr) {
-                            return true;
-                        }
-
-                        currX += stepX;
-                        currY += stepY;
-                    }
-                    return false;
-                }
-
-                bool isSquareInCheck(sf::Vector2i square) {
-                //Rook / Queen steps
-                    //X AXIS
-                    for(int direction = -1; direction <=2; direction += 2) {
-                        for(int i = square.x + direction; 0<=i && i<= 7; i+=(direction)*(1)) { 
-                            Piece* foundPiece = board[square.y][i];
-                            if(foundPiece != nullptr) {
-                                if(foundPiece->getType() == Piece::Type::Queen || foundPiece->getType() == Piece::Type::Rook) {
-                                    if(foundPiece->getColor() != currentTurn) {
-                                        return true;
-                                    }
-                                }
-                                break;
-                            }
-                        }
-                    }
-
-                    //Y AXIS
-                    for(int direction = -1; direction <=2; direction += 2) {
-                        for(int i = square.y + direction;0<=i && i<= 7; i+=(direction)*(1)) { 
-                            Piece* foundPiece = board[i][square.x];
-                            if(foundPiece != nullptr) {
-                                if(foundPiece->getType() == Piece::Type::Queen || foundPiece->getType() == Piece::Type::Rook) {
-                                    if(foundPiece->getColor() != currentTurn) {
-                                        return true;
-                                    }
-                                }
-                                break;
-                            }
-                        }
-                    }
-
-                //bishop / queen // DIAGONAL
-                for(int dirX : {-1, 1}) {
-                    for(int dirY : {-1,1}) {
-                        for(int dist = 1; dist <8 ; dist++) {
-                            int tx = square.x + (dirX * dist);
-                            int ty = square.y + (dirY*dist);
-
-                            if(tx < 0 || tx > 7 || ty < 0 || ty > 7) break;
-
-                            Piece* foundPiece = board[ty][tx];
-                            if(foundPiece != nullptr) {
-                                if(foundPiece->getType() == Piece::Type::Queen || foundPiece->getType() == Piece::Type::Bishop) {
-                                    if(foundPiece->getColor() != currentTurn) {
-                                        return true;
-                                    }
-                                }
-                                break;
-                            }
-                        }
-                    }
-                }
-                //knight 
-                sf::Vector2i knightMoves[] = {
-                    {2,1}, {2,-1}, {-2,1}, {-2,-1},
-                    {1,2}, {1,-2}, {-1,2}, {-1,-2}
+            void printBoard() { //how its actually STORED, NOT how its RENDERED
+                std::cout << "  0 1 2 3 4 5 6 7" << std::endl; // Spalten-Indizes
+                static std::map<Piece::Type, char> symbols = {
+                    {Piece::Type::King, 'K'}, {Piece::Type::Queen, 'Q'}, {Piece::Type::Knight, 'N'},
+                    {Piece::Type::Bishop, 'B'}, {Piece::Type::Rook, 'R'}, {Piece::Type::Pawn, 'P'}
                 };
 
-                for(const auto& move : knightMoves) {
-                    int x = square.x + move.x;
-                    int y = square.y + move.y; 
-                    if( x < 0 || x > 7 || y < 0 || y > 7) continue;
-                    Piece* foundPiece = board[y][x];
-                    if(foundPiece != nullptr && foundPiece->getType() == Piece::Type::Knight && foundPiece->getColor() != currentTurn) {
-                        return true;
+                for (int y = 0; y < 8; y++) {
+                    std::cout << y << " "; // Zeilen-Index
+                    for (int x = 0; x < 8; x++) {
+                        if (board[y][x] == nullptr) {
+                            std::cout << ". "; // Leeres Feld
+                        } else {
+                            // Hier könntest du später p->getSymbol() nutzen
+                            //char pieceSymbol = board[][];
+                            std::cout << symbols[board[y][x]->getType()] << " "; // 'P' für Piece (irgendeine Figur)
+                        }
+                    }
+                    std::cout << std::endl;
+                }
+                std::cout << "---------------" << std::endl;
+            }
+                                
+            void setPiece(sf::Vector2i pos, Piece* piece) {
+                if(pos.x >=0 && pos.y>=0 && pos.x<8 && pos.y <8){
+                    if(board[pos.y][pos.x] != nullptr){
+                    delete board[pos.y][pos.x];
+                }
+                    board[pos.y][pos.x] = piece;
+                    if(piece) {
+                        piece->scaleToFit(tileSize);
+                        int drawY = 7-pos.y;
+                        piece->setSpritePosition(offsetX + pos.x * tileSize, 
+                        offsetY + drawY*tileSize);
                     }
                 }
+            }
 
-                //PAWN
-                int direction = currentTurn == Piece::Color::White ? 1 : -1;
-                for(int i : {-1, 1}) {
-                    int targetY = square.y + (direction * 1);
-                    int targetX = square.x + i;
-                    if(targetY < 0 || targetY > 7 || targetX < 0 || targetX > 7) continue;
-                    Piece* potentialPawn = board[targetY][targetX];
-                    if(potentialPawn != nullptr && potentialPawn->getType() == Piece::Type::Pawn
-                        && potentialPawn->getColor()!=currentTurn) {
-                        return true;
+            King* getKing() { //gives the King who's move it would be --> currentTurn King
+                if(currentTurn == Piece::Color::White) {
+                    return dynamic_cast<King*>(board[whiteKingPos.y][whiteKingPos.x]);
+                } else {
+                    return dynamic_cast<King*>(board[blackKingPos.y][blackKingPos.x]);
+                }
+            }
+            
+            void movePiece(sf::Vector2i from, sf::Vector2i to) {
+                Piece* currentPiece = board[from.y][from.x];
+
+                if(currentPiece == nullptr || currentPiece->getColor() != currentTurn) return;
+
+                if(currentPiece->isValidMove(from,to, *this)){
+                    Piece* capturedPiece = board[to.y][to.x]; 
+                    
+                    sf::Vector2i oldKingPos = (currentTurn == Piece::Color::White) ? whiteKingPos : blackKingPos;
+
+                    board[to.y][to.x] = currentPiece;
+                    board[from.y][from.x] = nullptr;
+
+                    //in case of castling
+                    bool isMoveCastle = false;
+                    int rookX;
+                    int direction;
+
+                    if(currentPiece->getType() == Piece::Type::King) {
+                        (currentTurn == Piece::Color::White) ? (whiteKingPos = to) : (blackKingPos = to);
+
+                        if(std::abs(to.x - from.x) == 2) {
+                            isMoveCastle = true;
+                            rookX = (to.x - from.x < 0) ? 0 : 7; 
+                            direction = (rookX == 0) ? -1 : 1;
+                            board[from.y][from.x + direction] = board[from.y][rookX];
+                            board[from.y][rookX] = nullptr;
+                        }
                     }
-                }
 
-                return false;
-                }
-                
-                bool isKingChecked(){
-                    Piece* currentKing = getKing();
-                    sf::Vector2i KingPos;
-                    if(currentKing->getColor() == Piece::Color::White) {
-                        KingPos = whiteKingPos;
-                    } else {
-                        KingPos = blackKingPos;
+                    if(isKingChecked()) {
+                        //move invalid
+                        if(isMoveCastle){
+                            board[from.y][rookX] = board[from.y][from.x + direction]; 
+                            board[from.y][from.x + direction] = nullptr;
+                        }
+
+                        board[from.y][from.x] = currentPiece;
+                        board[to.y][to.x] = capturedPiece;                        
+
+                        if(currentPiece->getType() == Piece::Type::King) {
+                            (currentTurn == Piece::Color::White) ? (whiteKingPos = oldKingPos) : (blackKingPos = oldKingPos); 
+                        }
+                        return;
+                    }
+
+                    float newPosX = offsetX + static_cast<float>(to.x) * tileSize;
+                    float newPosY = offsetY + static_cast<float>(7-to.y) * tileSize;
+
+                    board[to.y][to.x]->startAnimation(gridToPosition(castToFloat((from))), gridToPosition(castToFloat(to)));
+
+                    if(isMoveCastle) {
+                        sf::Vector2i rookStart = {rookX,from.y};
+                        sf::Vector2i rookTarget = {from.x + direction, from.y};
+                        board[from.y][from.x + direction]->startAnimation(gridToPosition(castToFloat(rookStart)),gridToPosition(castToFloat(rookTarget)));
                     }
                     
-                    if(isSquareInCheck(KingPos)) {
+                    if(currentPiece->getType() == Piece::Type::Pawn) {
+                        Pawn* pawn = dynamic_cast<Pawn*>(currentPiece);
+                        pawn->markMove();
+                    }
+
+                    if(currentPiece->getType() == Piece::Type::King) {
+                            King* king = dynamic_cast<King*>(currentPiece);
+                            king->markMove();
+                    }
+
+                    if(capturedPiece != nullptr) {
+                        //std::cout << "gonna delete";
+                        delete capturedPiece; //free up space from dead piece
+                        //  std::cout << "even deleted memory";
+                    } 
+                    //std::cout << "gonna switch turns";
+
+                    switchTurn();
+
+                    std::cout << "Checking checkmate. isKingChecked: " << isKingChecked() << ", canPlayerMove: " << canPlayerMove() << std::endl;
+                    if(isCheckmate()) {
+                        gameOver = true;
+                        std::cout << "CHECKMATE";
+                    }
+                }
+            }
+
+            Piece* getPieceFromMouse(sf::Vector2i pos) { //input is raw mouse pos, not converted yet
+                sf::Vector2i convertedPos = mouseToGrid(pos);
+                return board[convertedPos.y][convertedPos.x];
+            }
+
+            Piece* getPieceFromGrid(sf::Vector2i pos) { //input is board pos, already converted
+                return board[pos.y][pos.x];
+            }
+
+            sf::Vector2i mouseToGrid(sf::Vector2i mP) {
+                int x = (mP.x - offsetX) / tileSize;
+                int y = (mP.y - offsetY) / tileSize;
+
+                if(x<0) x=0; else if (x>7) x=7;
+                if(y<0) y=0; else if (y>7) y=7;
+
+                y = 7-y;
+
+                return sf::Vector2i(x,y);
+            }
+
+            sf::Vector2f gridToPosition(sf::Vector2f gridPos) {
+                sf::Vector2f position;
+
+                position.x = offsetX + (gridPos.x * tileSize);
+                position.y = offsetY + ((7.f - gridPos.y) * tileSize);
+
+                return position;
+            }
+
+            bool isPathBlocked(sf::Vector2i from, sf::Vector2i to) { //PATH BLOCKED = TRUE
+                int xDiff = to.x - from.x;
+                int yDiff = to.y - from.y;
+
+                int stepX = (xDiff == 0) ? 0 : (xDiff > 0 ? 1 : -1);
+                int stepY = (yDiff == 0) ? 0 : (yDiff > 0 ? 1 : -1);
+
+                int currX = from.x + stepX;
+                int currY = from.y + stepY;
+
+                while(currX != to.x || currY != to.y) {
+                    if(board[currY][currX] != nullptr) {
                         return true;
                     }
-                    return false;
+
+                    currX += stepX;
+                    currY += stepY;
                 }
+                return false;
+            }
+
+            bool isSquareInCheck(sf::Vector2i square) {
+            //Rook / Queen steps
+                //X AXIS
+                for(int direction = -1; direction <=2; direction += 2) {
+                    for(int i = square.x + direction; 0<=i && i<= 7; i+=(direction)*(1)) { 
+                        Piece* foundPiece = board[square.y][i];
+                        if(foundPiece != nullptr) {
+                            if(foundPiece->getType() == Piece::Type::Queen || foundPiece->getType() == Piece::Type::Rook) {
+                                if(foundPiece->getColor() != currentTurn) {
+                                    return true;
+                                }
+                            }
+                            break;
+                        }
+                    }
+                }
+
+                //Y AXIS
+                for(int direction = -1; direction <=2; direction += 2) {
+                    for(int i = square.y + direction;0<=i && i<= 7; i+=(direction)*(1)) { 
+                        Piece* foundPiece = board[i][square.x];
+                        if(foundPiece != nullptr) {
+                            if(foundPiece->getType() == Piece::Type::Queen || foundPiece->getType() == Piece::Type::Rook) {
+                                if(foundPiece->getColor() != currentTurn) {
+                                    return true;
+                                }
+                            }
+                            break;
+                        }
+                    }
+                }
+
+            //bishop / queen // DIAGONAL
+            for(int dirX : {-1, 1}) {
+                for(int dirY : {-1,1}) {
+                    for(int dist = 1; dist <8 ; dist++) {
+                        int tx = square.x + (dirX * dist);
+                        int ty = square.y + (dirY*dist);
+
+                        if(tx < 0 || tx > 7 || ty < 0 || ty > 7) break;
+
+                        Piece* foundPiece = board[ty][tx];
+                        if(foundPiece != nullptr) {
+                            if(foundPiece->getType() == Piece::Type::Queen || foundPiece->getType() == Piece::Type::Bishop) {
+                                if(foundPiece->getColor() != currentTurn) {
+                                    return true;
+                                }
+                            }
+                            break;
+                        }
+                    }
+                }
+            }
+            //knight 
+            sf::Vector2i knightMoves[] = {
+                {2,1}, {2,-1}, {-2,1}, {-2,-1},
+                {1,2}, {1,-2}, {-1,2}, {-1,-2}
+            };
+
+            for(const auto& move : knightMoves) {
+                int x = square.x + move.x;
+                int y = square.y + move.y; 
+                if( x < 0 || x > 7 || y < 0 || y > 7) continue;
+                Piece* foundPiece = board[y][x];
+                if(foundPiece != nullptr && foundPiece->getType() == Piece::Type::Knight && foundPiece->getColor() != currentTurn) {
+                    return true;
+                }
+            }
+
+            //PAWN
+            int direction = currentTurn == Piece::Color::White ? 1 : -1;
+            for(int i : {-1, 1}) {
+                int targetY = square.y + (direction * 1);
+                int targetX = square.x + i;
+                if(targetY < 0 || targetY > 7 || targetX < 0 || targetX > 7) continue;
+                Piece* potentialPawn = board[targetY][targetX];
+                if(potentialPawn != nullptr && potentialPawn->getType() == Piece::Type::Pawn
+                    && potentialPawn->getColor()!=currentTurn) {
+                    return true;
+                }
+            }
+
+            return false;
+            }
+            
+            bool isKingChecked(){
+                Piece* currentKing = getKing();
+                sf::Vector2i KingPos;
+                if(currentKing->getColor() == Piece::Color::White) {
+                    KingPos = whiteKingPos;
+                } else {
+                    KingPos = blackKingPos;
+                }
+                
+                if(isSquareInCheck(KingPos)) {
+                    return true;
+                }
+                return false;
+            }
     };
 
 
@@ -552,8 +672,8 @@
                 if(isFirstMove) {
                     if(board.getPieceFromGrid(to) == nullptr && !(board.isPathBlocked(from, to))){
                         if(yDiff==2*direction || yDiff == 1 * direction) {
-                            isFirstMove = false;
                             return true; 
+                            std::cout << "is valid move";
                         }   
                     }
                 } else if (yDiff == (1*direction) && board.getPieceFromGrid(to) == nullptr){  
@@ -647,6 +767,8 @@
 
             if(( xDiff == 1 || yDiff == 1 || xDiff + yDiff == 2 )&& xDiff <2 && yDiff < 2) {
                 return true;
+            } else if(isFirstMove && !board.isPathBlocked(from, to) && yDiff == 0 && xDiff == 2) {
+                    return true;
             }
             return false;
     }
@@ -740,152 +862,173 @@
         std::vector<sf::CircleShape> possibleMoves;
 
 
+
+        enum class GameState { Menu, Playing, Promoting, GameOver};
+        GameState currentState = GameState::Promoting;
+
+        //*PROMOTING GUI_____
+        sf::RectangleShape promoteRectangle;
+        promoteRectangle.setFillColor(sf::Color(150,150,150));
+        float promoteRectangleWidth = screenWidth / 3;
+        float promoteRectangleHeight = screenHeight / 8;
+        promoteRectangle.setPosition({screenWidth / 2 - promoteRectangleWidth, screenHeight/2 - promoteRectangleHeight});
+        promoteRectangle.setSize({promoteRectangleWidth, promoteRectangleHeight});
+
         //EVENTS
         while (window.isOpen()) {  
-            while (const std::optional event = window.pollEvent()) {
-                if (event->is<sf::Event::Closed>()) {
-                    window.close();
-                }
-                //RIGHT click
-                if (const auto* mouseClick = event->getIf<sf::Event::MouseButtonPressed>()) {
-                    if (mouseClick->button == sf::Mouse::Button::Right) {
-                        lastMouseClick = sf::Mouse::getPosition(window);
-                        bool currentMouseClickInList = false;
-                        sf::Vector2i snappedPos;
-                        snappedPos.x = static_cast<float>(((lastMouseClick.x)/tileSize) * tileSize);
-                        snappedPos.y = static_cast<float>(((lastMouseClick.y)/tileSize) * tileSize);
+            switch(currentState) {
+                case GameState::Menu :
 
-                        bool alreadyExists = false;
-                        auto hBegin = highlightRecPositions.begin();
-                        auto hEnd = highlightRecPositions.end();
-                        for( auto it = hBegin; it != hEnd; ++it) {
-                            if(*it == snappedPos) {
-                                highlightRecPositions.erase(it);
-                                alreadyExists = true;
-                                break;
-                            }
-                        }
-                        if(!alreadyExists) {
-                                highlightRecPositions.push_back(snappedPos);    
-                        }
-                        showHighlightRec = !(highlightRecPositions.empty());
+                    break;
+                case GameState::Playing :
+                    while (const std::optional event = window.pollEvent()) {
+                    if (event->is<sf::Event::Closed>()) {
+                        window.close();
                     }
+                    //RIGHT click
+                    if (const auto* mouseClick = event->getIf<sf::Event::MouseButtonPressed>()) {
+                        if (mouseClick->button == sf::Mouse::Button::Right) {
+                            lastMouseClick = sf::Mouse::getPosition(window);
+                            bool currentMouseClickInList = false;
+                            sf::Vector2i snappedPos;
+                            snappedPos.x = static_cast<float>(((lastMouseClick.x)/tileSize) * tileSize);
+                            snappedPos.y = static_cast<float>(((lastMouseClick.y)/tileSize) * tileSize);
 
-                    //LEFT click
-                    if (mouseClick->button == sf::Mouse::Button::Left) {
-                        //HIGHLIGHT START
-                        if(showHighlightRec) {
-                            showHighlightRec = false;
-                            highlightRecPositions.clear();
-                            //std::cout << highlightRecPositions.front().x <<std::endl;
-                        }
-                        //HIGHLIGHT END
-
-                        sf::Vector2i mousePos = sf::Mouse::getPosition(window);
-                    
-                        sf::Vector2i clickedGridPos = board.mouseToGrid(mousePos);
-
-                        if (!isPieceSelected ) {
-                            possibleMoves.clear();
-                            Piece* clickedPiece = board.getPieceFromGrid(clickedGridPos);
-                            if (clickedPiece != nullptr && clickedPiece->getColor() == board.getCurrentTurn()) {
-                                isPieceSelected = true;
-                                selectedGridPos = clickedGridPos;
-
-                                for(int y = 0; y<8; y++) {
-                                    for(int x = 0; x<8;x++) {
-                                        if(clickedPiece->isValidMove(selectedGridPos, {x,y}, board)) {
-                                            sf::CircleShape circle;
-                                            float circleRadius = tileSize / 6.f;
-                                            float centerOffset = (tileSize / 2) - circleRadius;
-                                            circle.setPosition({posX + (x * tileSize) + centerOffset, (7-y) * tileSize + centerOffset});
-                                            circle.setFillColor(sf::Color(30,30,30,100));
-                                            circle.setRadius(circleRadius);
-
-                                            possibleMoves.push_back(circle);
-                                        } 
-                                    }
+                            bool alreadyExists = false;
+                            auto hBegin = highlightRecPositions.begin();
+                            auto hEnd = highlightRecPositions.end();
+                            for( auto it = hBegin; it != hEnd; ++it) {
+                                if(*it == snappedPos) {
+                                    highlightRecPositions.erase(it);
+                                    alreadyExists = true;
+                                    break;
                                 }
-
-                                lastMouseClick = sf::Mouse::getPosition(window);
-                                sf::Vector2f snappedPos;
-                                snappedPos.x = static_cast<float>(((lastMouseClick.x)/100) * 100);
-                                snappedPos.y = static_cast<float>(((lastMouseClick.y)/100) * 100); //should be tilesize but doesnt align
-
-                                originSquareHighlight.setPosition({snappedPos.x, snappedPos.y});
-                                // originSquareHighlight.setFillColor()
                             }
-                        } else {
-                            Piece* targetPiece = board.getPieceFromGrid(clickedGridPos);
-                            if (targetPiece != nullptr && targetPiece->getColor() == board.getCurrentTurn()) {
-                                selectedGridPos = clickedGridPos;
-                                sf::Vector2f snappedPos;
-                                snappedPos.x = static_cast<float>(((selectedGridPos.x)/tileSize) * tileSize);
-                                snappedPos.y = static_cast<float>(((selectedGridPos.y)/tileSize) * tileSize);
+                            if(!alreadyExists) {
+                                    highlightRecPositions.push_back(snappedPos);    
+                            }
+                            showHighlightRec = !(highlightRecPositions.empty());
+                        }
 
-                                originSquareHighlight.setPosition({snappedPos.x+1, snappedPos.y+1});                                
+                        //LEFT click
+                        if (mouseClick->button == sf::Mouse::Button::Left) {
+                            //HIGHLIGHT START
+                            if(showHighlightRec) {
+                                showHighlightRec = false;
+                                highlightRecPositions.clear();
+                                //std::cout << highlightRecPositions.front().x <<std::endl;
+                            }
+                            //HIGHLIGHT END
+
+                            sf::Vector2i mousePos = sf::Mouse::getPosition(window);
+                        
+                            sf::Vector2i clickedGridPos = board.mouseToGrid(mousePos);
+
+                            if (!isPieceSelected ) {
+                                possibleMoves.clear();
+                                Piece* clickedPiece = board.getPieceFromGrid(clickedGridPos);
+                                if (clickedPiece != nullptr && clickedPiece->getColor() == board.getCurrentTurn()) {
+                                    isPieceSelected = true;
+                                    selectedGridPos = clickedGridPos;
+
+                                    for(int y = 0; y<8; y++) {
+                                        for(int x = 0; x<8;x++) {
+                                            if(clickedPiece->isValidMove(selectedGridPos, {x,y}, board) && !board.isKingChecked()) {
+                                                sf::CircleShape circle;
+                                                float circleRadius = tileSize / 6.f;
+                                                float centerOffset = (tileSize / 2) - circleRadius;
+                                                circle.setPosition({posX + (x * tileSize) + centerOffset, (7-y) * tileSize + centerOffset});
+                                                circle.setFillColor(sf::Color(30,30,30,100));
+                                                circle.setRadius(circleRadius);
+
+                                                possibleMoves.push_back(circle);
+                                            } 
+                                        }
+                                    }
+
+                                    lastMouseClick = sf::Mouse::getPosition(window);
+                                    sf::Vector2f snappedPos;
+                                    snappedPos.x = static_cast<float>(((lastMouseClick.x)/100) * 100);
+                                    snappedPos.y = static_cast<float>(((lastMouseClick.y)/100) * 100); //should be tilesize but doesnt align
+
+                                    originSquareHighlight.setPosition({snappedPos.x, snappedPos.y});
+                                    // originSquareHighlight.setFillColor()
+                                }
                             } else {
-                                board.movePiece(selectedGridPos, clickedGridPos); //movePiece then checks for valid move
-                                sf::Vector2f floatGridPos;
-                                floatGridPos.x = static_cast<float>(clickedGridPos.x);
-                                floatGridPos.y = static_cast<float>(clickedGridPos.y);
+                                Piece* targetPiece = board.getPieceFromGrid(clickedGridPos);
+                                if (targetPiece != nullptr && targetPiece->getColor() == board.getCurrentTurn()) {
+                                    selectedGridPos = clickedGridPos;
+                                    sf::Vector2f snappedPos;
+                                    snappedPos.x = static_cast<float>(((selectedGridPos.x)/tileSize) * tileSize);
+                                    snappedPos.y = static_cast<float>(((selectedGridPos.y)/tileSize) * tileSize);
 
-                                sf::Vector2f targetPosition = board.gridToPosition(floatGridPos);
+                                    originSquareHighlight.setPosition({snappedPos.x+1, snappedPos.y+1});                                
+                                } else {
+                                    board.movePiece(selectedGridPos, clickedGridPos); //movePiece then checks for valid move
+                                    sf::Vector2f floatGridPos;
+                                    floatGridPos.x = static_cast<float>(clickedGridPos.x);
+                                    floatGridPos.y = static_cast<float>(clickedGridPos.y);
 
-                                targetSquareHighlight.setPosition(targetPosition);
-                                //std::cout << targetPosition.y << " ist y und " << targetPosition.x << "ist x" << std::endl; 
-                                board.printBoard();
+                                    sf::Vector2f targetPosition = board.gridToPosition(floatGridPos);
+
+                                    targetSquareHighlight.setPosition(targetPosition);
+                                    //std::cout << targetPosition.y << " ist y und " << targetPosition.x << "ist x" << std::endl; 
+                                    board.printBoard();
+                                }
+                                possibleMoves.clear();
+                                isPieceSelected = false;
                             }
-                            possibleMoves.clear();
-                            isPieceSelected = false;
                         }
                     }
-                }
-        }
+            }
 
-            
-            //Cursor text / position
-            sf::Vector2i mousePixel = sf::Mouse::getPosition(window);
-            sf::Vector2f mouseWorld = window.mapPixelToCoords(mousePixel);
+                
+                //Cursor text / position
+                sf::Vector2i mousePixel = sf::Mouse::getPosition(window);
+                sf::Vector2f mouseWorld = window.mapPixelToCoords(mousePixel);
 
-                // set mouse Boundaries
-                //mouseWorld.x - posX;
-                if(mouseWorld.x<posX) {
-                    mouseWorld.x = 0;
-                } else if(mouseWorld.x> posX + boardWidth) { //idk why 18 but it works
-                    mouseWorld.x = posX + boardWidth;
-                }
+                    // set mouse Boundaries
+                    //mouseWorld.x - posX;
+                    if(mouseWorld.x<posX) {
+                        mouseWorld.x = 0;
+                    } else if(mouseWorld.x> posX + boardWidth) { //idk why 18 but it works
+                        mouseWorld.x = posX + boardWidth;
+                    }
 
-                if(mouseWorld.y<0) {
-                    mouseWorld.y = 0;
-                } else if(mouseWorld.y>screenHeight) {
-                    mouseWorld.y = screenHeight;
-                }
-            
-            /*    cursorText.setString("X: " + std::to_string((int)mouseWorld.x) + 
-                                "Y: " + std::to_string((int)mouseWorld.y));
-                                */
-                                
-            //convert mouse cords to field position
-            int mX = mouseWorld.x; //just to make it simpler
-            int mY = mouseWorld.y;
+                    if(mouseWorld.y<0) {
+                        mouseWorld.y = 0;
+                    } else if(mouseWorld.y>screenHeight) {
+                        mouseWorld.y = screenHeight;
+                    }
+                
+                /*    cursorText.setString("X: " + std::to_string((int)mouseWorld.x) + 
+                                    "Y: " + std::to_string((int)mouseWorld.y));
+                                    */
+                                    
+                //convert mouse cords to field position
+                int mX = mouseWorld.x; //just to make it simpler
+                int mY = mouseWorld.y;
 
-            int mouseYIndex = 8-(int)mY / tileSize ;
-            int mouseXIndex = (int)mX / tileSize;
-            char mouseXField = 'A' + mouseXIndex;
+                int mouseYIndex = 8-(int)mY / tileSize ;
+                int mouseXIndex = (int)mX / tileSize;
+                char mouseXField = 'A' + mouseXIndex;
 
-            bool mouseInBounds = !(mY >= screenHeight || mY <= 0 || mouseXIndex < 0 || mouseXIndex > 7);
+                bool mouseInBounds = !(mY >= screenHeight || mY <= 0 || mouseXIndex < 0 || mouseXIndex > 7);
 
-            /*
-            if(!mouseInBounds) {
-                cursorText.setString("Mouse out of bounds");
-            } else {
-                cursorText.setString(mouseXField + std::to_string((int)mouseYIndex));
-            }*/
+                /*
+                if(!mouseInBounds) {
+                    cursorText.setString("Mouse out of bounds");
+                } else {
+                    cursorText.setString(mouseXField + std::to_string((int)mouseYIndex));
+                }*/
 
-            cursorText.setString((board.getCurrentTurn() == Piece::Color::White ) ? "White's \n Turn" : "Black's \n turn");
+                cursorText.setString((board.getCurrentTurn() == Piece::Color::White ) ? "White's \n Turn" : "Black's \n turn");
 
-            highlightRec.setSize({tileSize, tileSize});    
+                highlightRec.setSize({tileSize, tileSize}); 
+                break;
+
+            }
+               
 
             //*RENDER_______________________________________________________________________________________
             if(board.isKingChecked()) {
@@ -934,6 +1077,19 @@
             }
 
             window.draw(cursorText);
+
+            switch(currentState) {
+                case GameState::Playing:
+                    break;
+                case GameState::Promoting:
+                    window.draw(promoteRectangle);
+                    break;
+                case GameState::GameOver:
+
+                    break;
+            }
+
+
             window.display(); //show window
             }
         return 0;    
