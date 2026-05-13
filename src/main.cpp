@@ -367,6 +367,14 @@
                 return false;
             }
 
+            bool isStalemate() {
+                if(!isKingChecked() && !canPlayerMove()) {
+                    return true;
+                }
+                
+                return false;
+            }
+
             Piece::Color getCurrentTurn() {
                 return currentTurn;
             }
@@ -1019,6 +1027,10 @@
                                                 std::cout << "CHECKMATE!" << std::endl;
                                                 currentState = GameState::GameOver;
                                             }
+
+                                            if(board.isStalemate()) {
+                                                currentState = GameState::GameOver;
+                                            }
                                         }
                                         
                                     }
@@ -1097,6 +1109,8 @@
                                         std::cout << "Checking checkmate. isKingChecked: " << board.isKingChecked() << ", canPlayerMove: " << board.canPlayerMove() << std::endl;
                                         if(board.isCheckmate()) {
                                             std::cout << "CHECKMATE!" << std::endl;
+                                            currentState = GameState::GameOver;
+                                        } else if(board.isStalemate()) {
                                             currentState = GameState::GameOver;
                                         } else {
                                             currentState = GameState::Playing;
