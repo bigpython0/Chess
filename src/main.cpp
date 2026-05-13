@@ -425,10 +425,10 @@
                 }
             }
             
-            void movePiece(sf::Vector2i from, sf::Vector2i to) {
+            bool movePiece(sf::Vector2i from, sf::Vector2i to) {
                 Piece* currentPiece = board[from.y][from.x];
 
-                if(currentPiece == nullptr || currentPiece->getColor() != currentTurn) return;
+                if(currentPiece == nullptr || currentPiece->getColor() != currentTurn) return false;
 
                 if(currentPiece->isValidMove(from,to, *this)){
                     Piece* capturedPiece = board[to.y][to.x]; 
@@ -468,7 +468,7 @@
                         if(currentPiece->getType() == Piece::Type::King) {
                             (currentTurn == Piece::Color::White) ? (whiteKingPos = oldKingPos) : (blackKingPos = oldKingPos); 
                         }
-                        return;
+                        return false; 
                     }
 
                     float newPosX = offsetX + static_cast<float>(to.x) * tileSize;
@@ -506,6 +506,10 @@
                         gameOver = true;
                         std::cout << "CHECKMATE";
                     }
+
+                    return true;
+                } else {
+                    return false;
                 }
             }
 
@@ -839,6 +843,20 @@
         sf::RectangleShape highlightRec;
         highlightRec.setFillColor(sf::Color(255, 0, 0, 0)); //last value is alpha 0-255
 
+        //promotion selection 
+        /*
+        float scalingFactor = 0.9f;
+        sf::RectangleShape promoteSelectionSquare;
+        promoteSelectionSquare.setScale({scalingFactor,scalingFactor});
+        sf::Vector2f currentPos = promoteSelectionSquare.getPosition();
+        sf::Vector2f centeredPos = {currentPos.x + (scalingFactor * tileSize), currentPos.y + (scalingFactor * tileSize)};
+        promoteSelectionSquare.setPosition(centeredPos);
+        */
+
+        
+
+        
+
         //MOVE PIECE FROM HIGHLIGHT
         sf::RectangleShape originSquareHighlight;
         originSquareHighlight.setFillColor(sf::Color(50,75,200, 200));
@@ -864,23 +882,41 @@
 
 
         enum class GameState { Menu, Playing, Promoting, GameOver};
-        GameState currentState = GameState::Promoting;
+        GameState currentState = GameState::Playing;
+
+        sf::Vector2i promotionSquare = {-1,-1};
 
         //*PROMOTING GUI_____
         sf::RectangleShape promoteRectangle;
-        promoteRectangle.setFillColor(sf::Color(150,150,150));
-        float promoteRectangleWidth = screenWidth / 3;
-        float promoteRectangleHeight = screenHeight / 8;
-        promoteRectangle.setPosition({screenWidth / 2 - promoteRectangleWidth, screenHeight/2 - promoteRectangleHeight});
+        promoteRectangle.setFillColor(sf::Color(99, 130, 66));
+        float promoteRectangleWidth = screenWidth / 2;
+        float promoteRectangleHeight = screenHeight / 6;
+        promoteRectangle.setPosition({screenWidth / 2 - promoteRectangleWidth / 2, screenHeight/2 - promoteRectangleHeight/2});
         promoteRectangle.setSize({promoteRectangleWidth, promoteRectangleHeight});
+        promoteRectangle.setOutlineColor(sf::Color(10,10,10));
+        promoteRectangle.setOutlineThickness(5.f);
+
+        //Promoting rectangles
+        sf::RectangleShape promotionOutline;
+        promotionOutline.setFillColor(sf::Color::Transparent);
+        promotionOutline.setSize({tileSize, tileSize});
+        promotionOutline.setOutlineColor(sf::Color(139, 170, 106));
+        float promotionOutlineThickness = 10;
+        promotionOutline.setOutlineThickness(promotionOutlineThickness);
+        
+        //setposition?
 
         //EVENTS
         while (window.isOpen()) {  
             switch(currentState) {
-                case GameState::Menu :
-
+                case GameState::Menu : {
+                    sf::RectangleShape MenuRectangle;
+                    MenuRectangle.setSize({static_cast<float>(screenWidth), static_cast<float>(screenHeight)});
+                    MenuRectangle.setFillColor(sf::Color(100,50,200));
+                    MenuRectangle.setPosition({0,0});
                     break;
-                case GameState::Playing :
+                }
+                case GameState::Playing : {
                     while (const std::optional event = window.pollEvent()) {
                     if (event->is<sf::Event::Closed>()) {
                         window.close();
@@ -931,6 +967,7 @@
                                     isPieceSelected = true;
                                     selectedGridPos = clickedGridPos;
 
+                                    //possible move circles
                                     for(int y = 0; y<8; y++) {
                                         for(int x = 0; x<8;x++) {
                                             if(clickedPiece->isValidMove(selectedGridPos, {x,y}, board) && !board.isKingChecked()) {
@@ -964,72 +1001,116 @@
 
                                     originSquareHighlight.setPosition({snappedPos.x+1, snappedPos.y+1});                                
                                 } else {
-                                    board.movePiece(selectedGridPos, clickedGridPos); //movePiece then checks for valid move
-                                    sf::Vector2f floatGridPos;
-                                    floatGridPos.x = static_cast<float>(clickedGridPos.x);
-                                    floatGridPos.y = static_cast<float>(clickedGridPos.y);
+                                    if(board.movePiece(selectedGridPos, clickedGridPos)) { //movePiece then checks for valid move
+                                        Piece* movedPiece = board.getPieceFromGrid(clickedGridPos);
+                                        if (movedPiece && movedPiece->getType() == Piece::Type::Pawn) {
+                                            if (clickedGridPos.y == 0 || clickedGridPos.y == 7) {
+                                                promotionSquare = clickedGridPos;
+                                                currentState = GameState::Promoting;
+                                            }
+                                        }
+                                        sf::Vector2f floatGridPos;
+                                        floatGridPos.x = static_cast<float>(clickedGridPos.x);
+                                        floatGridPos.y = static_cast<float>(clickedGridPos.y);
 
-                                    sf::Vector2f targetPosition = board.gridToPosition(floatGridPos);
+                                        sf::Vector2f targetPosition = board.gridToPosition(floatGridPos);
 
-                                    targetSquareHighlight.setPosition(targetPosition);
-                                    //std::cout << targetPosition.y << " ist y und " << targetPosition.x << "ist x" << std::endl; 
-                                    board.printBoard();
+                                        targetSquareHighlight.setPosition(targetPosition);
+                                        //std::cout << targetPosition.y << " ist y und " << targetPosition.x << "ist x" << std::endl; 
+                                        board.printBoard();
+                                    }
                                 }
                                 possibleMoves.clear();
                                 isPieceSelected = false;
+                                }
                             }
                         }
                     }
-            }
+                    //Cursor text / position
+                    sf::Vector2i mousePixel = sf::Mouse::getPosition(window);
+                    sf::Vector2f mouseWorld = window.mapPixelToCoords(mousePixel);
 
-                
-                //Cursor text / position
-                sf::Vector2i mousePixel = sf::Mouse::getPosition(window);
-                sf::Vector2f mouseWorld = window.mapPixelToCoords(mousePixel);
+                        // set mouse Boundaries
+                        //mouseWorld.x - posX;
+                        if(mouseWorld.x<posX) {
+                            mouseWorld.x = 0;
+                        } else if(mouseWorld.x> posX + boardWidth) { //idk why 18 but it works
+                            mouseWorld.x = posX + boardWidth;
+                        }
 
-                    // set mouse Boundaries
-                    //mouseWorld.x - posX;
-                    if(mouseWorld.x<posX) {
-                        mouseWorld.x = 0;
-                    } else if(mouseWorld.x> posX + boardWidth) { //idk why 18 but it works
-                        mouseWorld.x = posX + boardWidth;
+                        if(mouseWorld.y<0) {
+                            mouseWorld.y = 0;
+                        } else if(mouseWorld.y>screenHeight) {
+                            mouseWorld.y = screenHeight;
+                        }
+                    
+                    //convert mouse cords to field position
+                    int mX = mouseWorld.x; //just to make it simpler
+                    int mY = mouseWorld.y;
+
+                    int mouseYIndex = 8-(int)mY / tileSize ;
+                    int mouseXIndex = (int)mX / tileSize;
+                    char mouseXField = 'A' + mouseXIndex;
+
+                    bool mouseInBounds = !(mY >= screenHeight || mY <= 0 || mouseXIndex < 0 || mouseXIndex > 7);
+
+                    cursorText.setString((board.getCurrentTurn() == Piece::Color::White ) ? "White's \n Turn" : "Black's \n turn");
+
+                    highlightRec.setSize({tileSize, tileSize}); 
+                    break;
+                }
+
+                case GameState::Promoting: {
+                    while (const std::optional event = window.pollEvent()) {
+                        if (event->is<sf::Event::Closed>()) window.close();
+
+                        if (const auto* mouseClick = event->getIf<sf::Event::MouseButtonPressed>()) {
+                            if (mouseClick->button == sf::Mouse::Button::Left) {
+                                sf::Vector2f mPos = castToFloat(sf::Mouse::getPosition(window));
+                                
+                                sf::Vector2f initialPos = promoteRectangle.getPosition();
+                                initialPos.x += promotionOutlineThickness * 2.5f;
+                                sf::Vector2f centering = {(promoteRectangleWidth / (4 * tileSize)) / 2,
+                                                        (promoteRectangleHeight - tileSize) / 2};
+                                
+                                for(int i = 0; i < 4; i++) {
+                                    // SFML 3 Rect Syntax: {Position}, {Größe}
+                                    sf::FloatRect optionBounds(
+                                        {initialPos.x + centering.x + i * (promoteRectangleWidth / 4), 
+                                        initialPos.y + centering.y}, 
+                                        {tileSize, tileSize}
+                                    );
+
+                                    if (optionBounds.contains(mPos)) {
+                                        Piece::Color c = board.getCurrentTurn() == Piece::Color::White ? Piece::Color::Black : Piece::Color::White;
+                                        
+                                        if (i == 0) board.setPiece(promotionSquare, new Queen(c));
+                                        else if (i == 1) board.setPiece(promotionSquare, new Rook(c));
+                                        else if (i == 2) board.setPiece(promotionSquare, new Bishop(c));
+                                        else if (i == 3) board.setPiece(promotionSquare, new Knight(c));
+
+                                        // 3. Jetzt erst den Zug beenden und zurück zum Spiel
+                                        board.switchTurn(); 
+                                        currentState = GameState::Playing;
+                                        promotionSquare = {-1, -1}; 
+                                        break;
+                                    }
+                                }
+                            }
+                        }
                     }
-
-                    if(mouseWorld.y<0) {
-                        mouseWorld.y = 0;
-                    } else if(mouseWorld.y>screenHeight) {
-                        mouseWorld.y = screenHeight;
+                    break;
+                }
+                case GameState::GameOver : {
+                    while (const std::optional event = window.pollEvent()) {
+                        if (event->is<sf::Event::Closed>()) {
+                            window.close();
+                        }
                     }
+                    break;
+                }
                 
-                /*    cursorText.setString("X: " + std::to_string((int)mouseWorld.x) + 
-                                    "Y: " + std::to_string((int)mouseWorld.y));
-                                    */
-                                    
-                //convert mouse cords to field position
-                int mX = mouseWorld.x; //just to make it simpler
-                int mY = mouseWorld.y;
-
-                int mouseYIndex = 8-(int)mY / tileSize ;
-                int mouseXIndex = (int)mX / tileSize;
-                char mouseXField = 'A' + mouseXIndex;
-
-                bool mouseInBounds = !(mY >= screenHeight || mY <= 0 || mouseXIndex < 0 || mouseXIndex > 7);
-
-                /*
-                if(!mouseInBounds) {
-                    cursorText.setString("Mouse out of bounds");
-                } else {
-                    cursorText.setString(mouseXField + std::to_string((int)mouseYIndex));
-                }*/
-
-                cursorText.setString((board.getCurrentTurn() == Piece::Color::White ) ? "White's \n Turn" : "Black's \n turn");
-
-                highlightRec.setSize({tileSize, tileSize}); 
-                break;
-
             }
-               
-
             //*RENDER_______________________________________________________________________________________
             if(board.isKingChecked()) {
                 window.clear(sf::Color(150,20,20));
@@ -1062,35 +1143,77 @@
                 }
             }
 
-            window.draw(originSquareHighlight);
-            window.draw(targetSquareHighlight);
-
-            // Alle Figuren auf dem Brett zeichnen
-            for(int y = 0; y < 8; y++) {
-                for(int x = 0; x < 8; x++) {
-                    Piece* piece = board.getPieceFromGrid({x,y});
-                    if(piece) {
-                        piece->update();
-                        piece->draw(window);
-                    }
-                }
-            }
-
             window.draw(cursorText);
 
             switch(currentState) {
-                case GameState::Playing:
+                case GameState::Menu : {
                     break;
-                case GameState::Promoting:
+                }
+                case GameState::Playing: {
+                    window.draw(originSquareHighlight);
+                    window.draw(targetSquareHighlight);
+                    
+
+                    // Alle Figuren auf dem Brett zeichnen
+                    for(int y = 0; y < 8; y++) {
+                        for(int x = 0; x < 8; x++) {
+                            Piece* piece = board.getPieceFromGrid({x,y});
+                            if(piece) {
+                                piece->update();
+                                piece->draw(window);
+                            }
+                        }
+                    }
+                    break;
+                }
+                case GameState::Promoting: {
+                    // Alle Figuren auf dem Brett zeichnen
+                    for(int y = 0; y < 8; y++) {
+                        for(int x = 0; x < 8; x++) {
+                            Piece* piece = board.getPieceFromGrid({x,y});
+                            if(piece) {
+                                piece->update();
+                                piece->draw(window);
+                            }
+                        }
+                    }
                     window.draw(promoteRectangle);
-                    break;
-                case GameState::GameOver:
+                    sf::Vector2i promotionSquare = {7,1};
 
+                    Piece::Color pColor = (promotionSquare.y == 7) ? Piece::Color::Black : Piece::Color::White;
+
+                    Queen optQueen(pColor); 
+                    Rook optRook(pColor); 
+                    Bishop optBishop(pColor); 
+                    Knight optKnight(pColor);
+                    Piece* promoOpts[] = { &optQueen, &optRook, &optBishop, &optKnight };
+
+                    sf::Vector2f initialPos = promoteRectangle.getPosition();
+                    initialPos.x += promotionOutlineThickness * 2.5f;
+                    sf::Vector2f centering = {(promoteRectangleWidth / (4 * tileSize)) / 2,
+                                            (promoteRectangleHeight - tileSize) / 2};
+                    
+                    for(int i = 0; i < 4; i++) {
+                        sf::Vector2f drawPos = {
+                            initialPos.x + centering.x + i * (promoteRectangleWidth / 4), 
+                            initialPos.y + centering.y
+                        };
+
+                        promotionOutline.setPosition(drawPos);
+                        window.draw(promotionOutline);
+
+                        promoOpts[i]->scaleToFit(tileSize);
+                        promoOpts[i]->setSpritePosition(drawPos.x, drawPos.y);
+                        promoOpts[i]->draw(window);
+                    }
                     break;
+                }
+                case GameState::GameOver:{
+                    
+                    break;
+                }
             }
-
-
             window.display(); //show window
-            }
-        return 0;    
-}
+        }
+        return 0;  
+}  
