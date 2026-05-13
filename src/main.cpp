@@ -446,7 +446,7 @@
                     if(currentPiece->getType() == Piece::Type::King) {
                         (currentTurn == Piece::Color::White) ? (whiteKingPos = to) : (blackKingPos = to);
 
-                        if(std::abs(to.x - from.x) == 2) {
+                        if((std::abs(to.x - from.x) == 2) && !isKingChecked()) {
                             isMoveCastle = true;
                             rookX = (to.x - from.x < 0) ? 0 : 7; 
                             direction = (rookX == 0) ? -1 : 1;
@@ -498,14 +498,6 @@
                         //  std::cout << "even deleted memory";
                     } 
                     //std::cout << "gonna switch turns";
-
-                    switchTurn();
-
-                    std::cout << "Checking checkmate. isKingChecked: " << isKingChecked() << ", canPlayerMove: " << canPlayerMove() << std::endl;
-                    if(isCheckmate()) {
-                        gameOver = true;
-                        std::cout << "CHECKMATE";
-                    }
 
                     return true;
                 } else {
@@ -1001,12 +993,14 @@
 
                                     originSquareHighlight.setPosition({snappedPos.x+1, snappedPos.y+1});                                
                                 } else {
+                                    bool isPromotion = false;
                                     if(board.movePiece(selectedGridPos, clickedGridPos)) { //movePiece then checks for valid move
                                         Piece* movedPiece = board.getPieceFromGrid(clickedGridPos);
                                         if (movedPiece && movedPiece->getType() == Piece::Type::Pawn) {
                                             if (clickedGridPos.y == 0 || clickedGridPos.y == 7) {
                                                 promotionSquare = clickedGridPos;
                                                 currentState = GameState::Promoting;
+                                                isPromotion = true;
                                             }
                                         }
                                         sf::Vector2f floatGridPos;
@@ -1018,6 +1012,15 @@
                                         targetSquareHighlight.setPosition(targetPosition);
                                         //std::cout << targetPosition.y << " ist y und " << targetPosition.x << "ist x" << std::endl; 
                                         board.printBoard();
+                                        if(!isPromotion) {
+                                            board.switchTurn();
+                                            std::cout << "Checking checkmate. isKingChecked: " << board.isKingChecked() << ", canPlayerMove: " << board.canPlayerMove() << std::endl;
+                                            if(board.isCheckmate()) {
+                                                std::cout << "CHECKMATE!" << std::endl;
+                                                currentState = GameState::GameOver;
+                                            }
+                                        }
+                                        
                                     }
                                 }
                                 possibleMoves.clear();
@@ -1082,7 +1085,7 @@
                                     );
 
                                     if (optionBounds.contains(mPos)) {
-                                        Piece::Color c = board.getCurrentTurn() == Piece::Color::White ? Piece::Color::Black : Piece::Color::White;
+                                        Piece::Color c = board.getCurrentTurn();
                                         
                                         if (i == 0) board.setPiece(promotionSquare, new Queen(c));
                                         else if (i == 1) board.setPiece(promotionSquare, new Rook(c));
@@ -1090,8 +1093,14 @@
                                         else if (i == 3) board.setPiece(promotionSquare, new Knight(c));
 
                                         // 3. Jetzt erst den Zug beenden und zurück zum Spiel
-                                        board.switchTurn(); 
-                                        currentState = GameState::Playing;
+                                        board.switchTurn();
+                                        std::cout << "Checking checkmate. isKingChecked: " << board.isKingChecked() << ", canPlayerMove: " << board.canPlayerMove() << std::endl;
+                                        if(board.isCheckmate()) {
+                                            std::cout << "CHECKMATE!" << std::endl;
+                                            currentState = GameState::GameOver;
+                                        } else {
+                                            currentState = GameState::Playing;
+                                        }
                                         promotionSquare = {-1, -1}; 
                                         break;
                                     }
