@@ -1,0 +1,41 @@
+body {
+    font-family: sans-serif;
+    text-align: center;
+    background-color: #2b2b2b;
+    color: #f0f0f0;
+}
+
+#board {
+    display: grid;
+    grid-template-columns: repeat(8, 60px);
+    grid-template-rows: repeat(8, 60px);
+    width: 480px;
+    margin: 20px auto;
+    border: 2px solid #111;
+}
+
+.square {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 40px;
+    cursor: pointer;
+    user-select: none;
+}
+
+.light {
+    background-color: #f0eed2;
+}
+
+.dark {
+    background-color: #779656;
+}
+
+.selected {
+    outline: 4px solid #3264c8;
+    outline-offset: -4px;
+}
+
+.possible-move {
+    box-shadow: inset 0 0 0 8px rgba(30, 30, 30, 0.4);
+}
