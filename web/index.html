@@ -3,21 +3,41 @@
 <head>
     <meta charset="UTF-8">
     <title>Chess (WebAssembly)</title>
-    <link rel="stylesheet" href="style.css?v=8">
+    <link rel="stylesheet" href="style.css?v=9">
 </head>
 <body>
     <div class="corner">
         <h1>♞ Schach</h1>
     </div>
     <div class="board-column">
-        <div id="board"></div>
+        <div id="captured-black" class="captured-tray"></div>
+
+        <div class="board-wrapper">
+            <div id="board"></div>
+
+            <div id="promotion-overlay" class="board-overlay hidden">
+                <div class="promotion-panel">
+                    <button class="promotion-choice" data-type="4"></button>
+                    <button class="promotion-choice" data-type="3"></button>
+                    <button class="promotion-choice" data-type="1"></button>
+                    <button class="promotion-choice" data-type="2"></button>
+                </div>
+            </div>
+
+            <div id="game-over-overlay" class="board-overlay hidden">
+                <div id="game-over-text"></div>
+            </div>
+        </div>
+
+        <div id="captured-white" class="captured-tray"></div>
+
         <p id="status">
             <span id="turn-dot" class="turn-dot"></span>
             <span id="status-text">Lade...</span>
         </p>
     </div>
 
-    <script src="chess.js?v=8"></script>
-    <script src="main.js?v=8"></script>
+    <script src="chess.js?v=9"></script>
+    <script src="main.js?v=9"></script>
 </body>
 </html>
