@@ -62,7 +62,11 @@ function render() {
         const y = Number(square.dataset.y);
 
         square.textContent = pieceSymbol(x, y);
-        square.classList.remove("selected", "possible-move");
+        square.classList.remove("selected", "possible-move", "white-piece", "black-piece");
+
+        const color = game.getPieceColor(x, y);
+        if (color === 0) square.classList.add("white-piece");
+        else if (color === 1) square.classList.add("black-piece");
     }
 
     if (selected !== null) {

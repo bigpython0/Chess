@@ -23,6 +23,19 @@ body {
     user-select: none;
 }
 
+.square.white-piece {
+    color: #ffffff;
+    text-shadow:
+        -1px -1px 0 #202020,
+        1px -1px 0 #202020,
+        -1px 1px 0 #202020,
+        1px 1px 0 #202020;
+}
+
+.square.black-piece {
+    color: #202020;
+}
+
 .light {
     background-color: #f0eed2;
 }
