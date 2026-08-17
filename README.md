@@ -1,40 +1,29 @@
-# C++ Schachspiel
+# C++ Schach
 
-Ein Schachspiel für 2 Spieler, entwickelt mit C++17 und SFML 3.
+Ein Schachspiel für 2 Spieler mit vollständigen Regeln: Zugvalidierung für alle Figuren, Rochade, En Passant, Bauernumwandlung sowie Erkennung von Schach, Schachmatt und Patt.
 
-Ich habe dieses Projekt umgesetzt, um **objektorientierte Programmierung (OOP)**, saubere Softwarearchitektur und die Implementierung komplexer Spiel-Logik von Grund auf zu vertiefen.
+**[Im Browser spielen](https://bigpython0.github.io/Chess/)**
 
----
+Die komplette Spiellogik habe ich von Grund auf selbst in C++17 geschrieben. Ursprünglich lief das Spiel nur als natives SFML-Fenster. Die Trennung der Logik von der SFML-Oberfläche sowie den WebAssembly-Port für den Browser habe ich mit Unterstützung von Claude (Anthropic) umgesetzt.
 
-## Features
+## Struktur
 
-- **Vollständige Schachregeln:** Gültige Zug-Validierung für alle Figuren sowie Erkennung von Schach, Schachmatt und Patt.
-- **Sonderzüge:** Rochade, En Passant und Bauernumwandlung (mit eigener Auswahl-UI im Spiel).
-- **Visuelles & Steuerung:** Sanfte Figuren-Animationen, Zug-Hervorhebung und Feld-Markierungen per Rechtsklick.
+- `src/Board.h`, `src/Piece.h` – Spiellogik, unabhängig von SFML
+- `src/main.cpp` – Desktop-Version mit SFML
+- `src/wasm_bindings.cpp` – bindet dieselbe Logik per Embind an JavaScript
+- `web/` – Browser-Frontend (HTML/CSS/JS)
 
----
+## Ausführen
 
-## Code-Struktur
+Desktop (benötigt SFML 3):
 
-Um den Code sauber zu strukturieren, ist die Spiel-Logik komplett von der SFML-Grafik getrennt:
+```bash
+cmake -B build && cmake --build build && ./build/chess_game
+```
 
-- `src/Board.h` & `src/Piece.h` – Reine C++-Schachlogik (vollkommen unabhängig von SFML).
-- `src/main.cpp` – Verwaltet das SFML-Fenster, das Rendering und die Benutzereingaben.
-- `src/wasm_bindings.cpp` – Bindet dieselbe Logik per Embind an JavaScript.
-
----
-
-## Web-Version (WebAssembly)
-
-Weil die Spiel-Logik unabhängig von SFML ist, läuft sie auch im Browser: `web/`
-enthält ein einfaches HTML/CSS/JS-Frontend, das die zu WebAssembly kompilierte
-Engine steuert (Unicode-Symbole statt Sprites, kein SFML nötig).
-
-Build mit dem [Emscripten SDK](https://emscripten.org/docs/getting_started/downloads.html):
+Web (benötigt das Emscripten SDK):
 
 ```bash
 ./build_wasm.sh
 cd web && python3 -m http.server 8000
 ```
-
-Danach `http://localhost:8000` im Browser öffnen (nicht per `file://` — WebAssembly braucht einen Server).
