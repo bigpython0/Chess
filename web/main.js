@@ -257,6 +257,20 @@ function onSquareClick(event) {
     render();
 }
 
+function resetGame() {
+    game.delete(); // Embind-Objekte muessen manuell freigegeben werden, sonst leckt der C++-Heap
+    game = new Module.WebGame();
+
+    selected = null;
+    lastMove = null;
+    gameOver = false;
+    capturedWhite = [];
+    capturedBlack = [];
+    hidePromotionOverlay();
+
+    render();
+}
+
 Module.onRuntimeInitialized = () => {
     game = new Module.WebGame();
     buildBoard();
@@ -264,6 +278,9 @@ Module.onRuntimeInitialized = () => {
     document.querySelectorAll(".promotion-choice").forEach(button => {
         button.addEventListener("click", () => choosePromotion(Number(button.dataset.type)));
     });
+
+    document.getElementById("new-game-button").addEventListener("click", resetGame);
+    document.getElementById("new-game-button-overlay").addEventListener("click", resetGame);
 
     render();
 };

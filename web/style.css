@@ -95,12 +95,34 @@ h1 {
     display: none;
 }
 
+.game-over-panel {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+}
+
 #game-over-text {
     font-size: 26px;
     font-weight: 600;
     color: #ffffff;
     text-align: center;
     padding: 0 24px;
+}
+
+.new-game-button {
+    font-family: inherit;
+    font-size: 14px;
+    color: #f0f0f0;
+    background-color: #3a3a3a;
+    border: none;
+    padding: 8px 22px;
+    border-radius: 999px;
+    cursor: pointer;
+}
+
+.new-game-button:hover {
+    background-color: #4a4a4a;
 }
 
 .promotion-panel {
