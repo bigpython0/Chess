@@ -28,6 +28,8 @@ function buildBoard() {
             square.className = "square " + ((row + col) % 2 === 0 ? "light" : "dark");
             square.dataset.x = col;
             square.dataset.y = row;
+            square.dataset.rank = row + 1;
+            square.dataset.file = String.fromCharCode(97 + col); // 97 = 'a'
             square.addEventListener("click", onSquareClick);
 
             boardDiv.appendChild(square);
