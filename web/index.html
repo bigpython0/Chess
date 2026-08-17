@@ -3,16 +3,21 @@
 <head>
     <meta charset="UTF-8">
     <title>Chess (WebAssembly)</title>
-    <link rel="stylesheet" href="style.css?v=6">
+    <link rel="stylesheet" href="style.css?v=7">
 </head>
 <body>
     <div class="corner">
         <h1>♞ Schach</h1>
-        <p id="status">Lade...</p>
     </div>
-    <div id="board"></div>
+    <div class="board-column">
+        <div id="board"></div>
+        <p id="status">
+            <span id="turn-dot" class="turn-dot"></span>
+            <span id="status-text">Lade...</span>
+        </p>
+    </div>
 
-    <script src="chess.js?v=6"></script>
-    <script src="main.js?v=6"></script>
+    <script src="chess.js?v=7"></script>
+    <script src="main.js?v=7"></script>
 </body>
 </html>

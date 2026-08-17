@@ -43,8 +43,12 @@ function squareAt(x, y) {
 }
 
 function updateStatusText() {
-    const statusText = document.getElementById("status");
+    const statusText = document.getElementById("status-text");
+    const turnDot = document.getElementById("turn-dot");
     const currentPlayer = game.getCurrentTurn() === 0 ? "Weiß" : "Schwarz";
+
+    turnDot.classList.remove("dot-white", "dot-black");
+    turnDot.classList.add(game.getCurrentTurn() === 0 ? "dot-white" : "dot-black");
 
     if (game.isCheckmate()) {
         const winner = currentPlayer === "Weiß" ? "Schwarz" : "Weiß";
