@@ -13,9 +13,7 @@ class WebGame {
         }
 
         bool isValidMove(int fromX, int fromY, int toX, int toY) {
-            Piece* piece = board.getPieceFromGrid({fromX, fromY});
-            if (piece == nullptr) return false;
-            return piece->isValidMove({fromX, fromY}, {toX, toY}, board) && !board.isKingChecked();
+            return board.isMoveLegal({fromX, fromY}, {toX, toY});
         }
 
         void promote(int x, int y, int pieceType) {

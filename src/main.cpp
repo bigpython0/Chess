@@ -438,6 +438,32 @@
                 return enPassantTarget;
             }
 
+            //prüft, ob ein Zug erlaubt ist UND den eigenen König nicht im Schach zurücklässt (für die Zugvorschau)
+            bool isMoveLegal(sf::Vector2i from, sf::Vector2i to) {
+                Piece* piece = board[from.y][from.x];
+                if(piece == nullptr) return false;
+                if(!piece->isValidMove(from, to, *this)) return false;
+
+                Piece* capturedPiece = board[to.y][to.x];
+                sf::Vector2i oldKingPos = (currentTurn == Piece::Color::White) ? whiteKingPos : blackKingPos;
+
+                board[to.y][to.x] = piece;
+                board[from.y][from.x] = nullptr;
+                if(piece->getType() == Piece::Type::King) {
+                    (currentTurn == Piece::Color::White) ? (whiteKingPos = to) : (blackKingPos = to);
+                }
+
+                bool stillChecked = isKingChecked();
+
+                board[from.y][from.x] = piece;
+                board[to.y][to.x] = capturedPiece;
+                if(piece->getType() == Piece::Type::King) {
+                    (currentTurn == Piece::Color::White) ? (whiteKingPos = oldKingPos) : (blackKingPos = oldKingPos);
+                }
+
+                return !stillChecked;
+            }
+
             bool movePiece(sf::Vector2i from, sf::Vector2i to) {
                 Piece* currentPiece = board[from.y][from.x];
 
@@ -1003,7 +1029,7 @@
                                     //possible move circles
                                     for(int y = 0; y<8; y++) {
                                         for(int x = 0; x<8;x++) {
-                                            if(clickedPiece->isValidMove(selectedGridPos, {x,y}, board) && !board.isKingChecked()) {
+                                            if(board.isMoveLegal(selectedGridPos, {x,y})) {
                                                 sf::CircleShape circle;
                                                 float circleRadius = tileSize / 6.f;
                                                 float centerOffset = (tileSize / 2) - circleRadius;
