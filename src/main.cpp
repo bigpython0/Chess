@@ -263,6 +263,7 @@
             Piece* board[8][8] = { nullptr }; 
             sf::Vector2i whiteKingPos;
             sf::Vector2i blackKingPos;
+            sf::Vector2i enPassantTarget = {-1, -1};
             float offsetX;
             float offsetY;
             float tileSize;
@@ -432,19 +433,33 @@
                     return dynamic_cast<King*>(board[blackKingPos.y][blackKingPos.x]);
                 }
             }
-            
+
+            sf::Vector2i getEnPassantTarget() {
+                return enPassantTarget;
+            }
+
             bool movePiece(sf::Vector2i from, sf::Vector2i to) {
                 Piece* currentPiece = board[from.y][from.x];
 
                 if(currentPiece == nullptr || currentPiece->getColor() != currentTurn) return false;
 
                 if(currentPiece->isValidMove(from,to, *this)){
-                    Piece* capturedPiece = board[to.y][to.x]; 
-                    
+                    Piece* capturedPiece = board[to.y][to.x];
+
+                    //en passant: diagonal pawn move onto an empty square captures the pawn beside it, not on it
+                    bool isEnPassant = false;
+                    if(currentPiece->getType() == Piece::Type::Pawn && from.x != to.x && capturedPiece == nullptr) {
+                        isEnPassant = true;
+                        capturedPiece = board[from.y][to.x];
+                    }
+
                     sf::Vector2i oldKingPos = (currentTurn == Piece::Color::White) ? whiteKingPos : blackKingPos;
 
                     board[to.y][to.x] = currentPiece;
                     board[from.y][from.x] = nullptr;
+                    if(isEnPassant) {
+                        board[from.y][to.x] = nullptr;
+                    }
 
                     //in case of castling
                     bool isMoveCastle = false;
@@ -471,12 +486,17 @@
                         }
 
                         board[from.y][from.x] = currentPiece;
-                        board[to.y][to.x] = capturedPiece;                        
+                        if(isEnPassant) {
+                            board[to.y][to.x] = nullptr;
+                            board[from.y][to.x] = capturedPiece;
+                        } else {
+                            board[to.y][to.x] = capturedPiece;
+                        }
 
                         if(currentPiece->getType() == Piece::Type::King) {
-                            (currentTurn == Piece::Color::White) ? (whiteKingPos = oldKingPos) : (blackKingPos = oldKingPos); 
+                            (currentTurn == Piece::Color::White) ? (whiteKingPos = oldKingPos) : (blackKingPos = oldKingPos);
                         }
-                        return false; 
+                        return false;
                     }
 
                     float newPosX = offsetX + static_cast<float>(to.x) * tileSize;
@@ -504,8 +524,15 @@
                         //std::cout << "gonna delete";
                         delete capturedPiece; //free up space from dead piece
                         //  std::cout << "even deleted memory";
-                    } 
+                    }
                     //std::cout << "gonna switch turns";
+
+                    //ein doppelter Bauernzug macht das übersprungene Feld für den nächsten Zug en-passant-fähig
+                    if(currentPiece->getType() == Piece::Type::Pawn && std::abs(to.y - from.y) == 2) {
+                        enPassantTarget = {to.x, (from.y + to.y) / 2};
+                    } else {
+                        enPassantTarget = {-1, -1};
+                    }
 
                     return true;
                 } else {
@@ -692,10 +719,16 @@
                     isFirstMove = false;
                     return true;
                 }
+                // en passant: Zielfeld ist leer, aber genau das Feld, das der gegnerische Bauer übersprungen hat
+                sf::Vector2i epTarget = board.getEnPassantTarget();
+                if (target == nullptr && epTarget.x == to.x && epTarget.y == to.y) {
+                    isFirstMove = false;
+                    return true;
+                }
             }
-            
-                
-            
+
+
+
             return false;
         };
 

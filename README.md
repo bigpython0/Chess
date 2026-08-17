@@ -9,7 +9,7 @@ Ich habe dieses Projekt umgesetzt, um **objektorientierte Programmierung (OOP)**
 ## Features
 
 - **Vollständige Schachregeln:** Gültige Zug-Validierung für alle Figuren sowie Erkennung von Schach, Schachmatt und Patt.
-- **Sonderzüge:** Rochade und Bauernumwandlung (mit eigener Auswahl-UI im Spiel).
+- **Sonderzüge:** Rochade, En Passant und Bauernumwandlung (mit eigener Auswahl-UI im Spiel).
 - **Visuelles & Steuerung:** Sanfte Figuren-Animationen, Zug-Hervorhebung und Feld-Markierungen per Rechtsklick.
 
 ---

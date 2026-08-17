@@ -10,6 +10,7 @@ class Board {
         Piece* board[8][8] = { nullptr };
         Position whiteKingPos;
         Position blackKingPos;
+        Position enPassantTarget = {-1, -1};
         bool gameOver = false;
         Piece::Color currentTurn = Piece::Color::White;
 
@@ -168,6 +169,10 @@ class Board {
             }
         }
 
+        Position getEnPassantTarget() {
+            return enPassantTarget;
+        }
+
         bool movePiece(Position from, Position to) {
             Piece* currentPiece = board[from.y][from.x];
 
@@ -176,10 +181,20 @@ class Board {
             if(currentPiece->isValidMove(from,to, *this)){
                 Piece* capturedPiece = board[to.y][to.x];
 
+                //en passant: diagonal pawn move onto an empty square captures the pawn beside it, not on it
+                bool isEnPassant = false;
+                if(currentPiece->getType() == Piece::Type::Pawn && from.x != to.x && capturedPiece == nullptr) {
+                    isEnPassant = true;
+                    capturedPiece = board[from.y][to.x];
+                }
+
                 Position oldKingPos = (currentTurn == Piece::Color::White) ? whiteKingPos : blackKingPos;
 
                 board[to.y][to.x] = currentPiece;
                 board[from.y][from.x] = nullptr;
+                if(isEnPassant) {
+                    board[from.y][to.x] = nullptr;
+                }
 
                 //in case of castling
                 bool isMoveCastle = false;
@@ -206,7 +221,12 @@ class Board {
                     }
 
                     board[from.y][from.x] = currentPiece;
-                    board[to.y][to.x] = capturedPiece;
+                    if(isEnPassant) {
+                        board[to.y][to.x] = nullptr;
+                        board[from.y][to.x] = capturedPiece;
+                    } else {
+                        board[to.y][to.x] = capturedPiece;
+                    }
 
                     if(currentPiece->getType() == Piece::Type::King) {
                         (currentTurn == Piece::Color::White) ? (whiteKingPos = oldKingPos) : (blackKingPos = oldKingPos);
@@ -226,6 +246,13 @@ class Board {
 
                 if(capturedPiece != nullptr) {
                     delete capturedPiece; //free up space from dead piece
+                }
+
+                //ein doppelter Bauernzug macht das übersprungene Feld für den nächsten Zug en-passant-fähig
+                if(currentPiece->getType() == Piece::Type::Pawn && std::abs(to.y - from.y) == 2) {
+                    enPassantTarget = {to.x, (from.y + to.y) / 2};
+                } else {
+                    enPassantTarget = {-1, -1};
                 }
 
                 return true;
@@ -384,6 +411,12 @@ bool Pawn::isValidMove(Position from, Position to, Board& board){
             Piece* target = board.getPieceFromGrid(to);
             // Es MUSS ein Gegner dort stehen
             if (target != nullptr && target->getColor() != this->color) {
+                isFirstMove = false;
+                return true;
+            }
+            // en passant: Zielfeld ist leer, aber genau das Feld, das der gegnerische Bauer übersprungen hat
+            Position epTarget = board.getEnPassantTarget();
+            if (target == nullptr && epTarget.x == to.x && epTarget.y == to.y) {
                 isFirstMove = false;
                 return true;
             }
