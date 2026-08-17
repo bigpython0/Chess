@@ -1,0 +1,19 @@
+# Build output
+/build/
+chess
+chess_game
+src/chess
+
+# Vendored runtime binaries (fetch via SFML install instead)
+*.dll
+*.dylib
+*.so
+
+# Object files
+*.o
+*.obj
+
+# OS junk
+.DS_Store
+**/.DS_Store
+Thumbs.db

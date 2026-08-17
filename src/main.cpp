@@ -102,13 +102,13 @@
             explicit Pawn(Color c)
             : Piece(c, Type::Pawn) { //muss noch für alle anderen piece klassen type implementieren 
             if(c == Color::White) {
-                if(texture.loadFromFile("src/images/pieces/white-pawn.png")) {
+                if(texture.loadFromFile("assets/images/pieces/white-pawn.png")) {
                             sprite.setTexture(texture, true);
                         } else {
                             std::cout << "couldnt load white pawn texture" << std::endl;
                         }
             } else {
-                if(texture.loadFromFile("src/images/pieces/black-pawn.png")) {
+                if(texture.loadFromFile("assets/images/pieces/black-pawn.png")) {
                             sprite.setTexture(texture, true);
                         } else {
                             std::cout << "couldnt load black pawn texture" << std::endl;
@@ -127,13 +127,13 @@
             explicit Knight(Color c)
             : Piece(c, Type::Knight) {
             if(c == Color::White) {
-                if(texture.loadFromFile("src/images/pieces/white-knight.png")) {
+                if(texture.loadFromFile("assets/images/pieces/white-knight.png")) {
                             sprite.setTexture(texture, true);
                         } else {
                             std::cout << "couldnt load white pawn texture" << std::endl;
                         }
             } else {
-                if(texture.loadFromFile("src/images/pieces/black-knight.png")) {
+                if(texture.loadFromFile("assets/images/pieces/black-knight.png")) {
                             sprite.setTexture(texture, true);
                         } else {
                             std::cout << "couldnt load black pawn texture" << std::endl;
@@ -149,13 +149,13 @@
             explicit Bishop(Color c)
             : Piece(c, Type::Bishop) {
             if(c == Color::White) {
-                if(texture.loadFromFile("src/images/pieces/white-bishop.png")) {
+                if(texture.loadFromFile("assets/images/pieces/white-bishop.png")) {
                             sprite.setTexture(texture, true);
                         } else {
                             std::cout << "couldnt load white pawn texture" << std::endl;
                         }
             } else {
-                if(texture.loadFromFile("src/images/pieces/black-bishop.png")) {
+                if(texture.loadFromFile("assets/images/pieces/black-bishop.png")) {
                             sprite.setTexture(texture, true);
                         } else {
                             std::cout << "couldnt load black pawn texture" << std::endl;
@@ -171,13 +171,13 @@
             explicit Queen(Color c)
             : Piece(c, Type::Queen) {
             if(c == Color::White) {
-                if(texture.loadFromFile("src/images/pieces/white-queen.png")) {
+                if(texture.loadFromFile("assets/images/pieces/white-queen.png")) {
                             sprite.setTexture(texture, true);
                         } else {
                             std::cout << "couldnt load white pawn texture" << std::endl;
                         }
             } else {
-                if(texture.loadFromFile("src/images/pieces/black-queen.png")) {
+                if(texture.loadFromFile("assets/images/pieces/black-queen.png")) {
                             sprite.setTexture(texture, true);
                         } else {
                             std::cout << "couldnt load black pawn texture" << std::endl;
@@ -199,13 +199,13 @@
             : Piece(c, Type::King) {
                 isChecked = false;
                 if(c == Color::White) {
-                    if(texture.loadFromFile("src/images/pieces/white-king.png")) {
+                    if(texture.loadFromFile("assets/images/pieces/white-king.png")) {
                                 sprite.setTexture(texture, true);
                             } else {
                                 std::cout << "couldnt load white pawn texture" << std::endl;
                             }
                 } else {
-                    if(texture.loadFromFile("src/images/pieces/black-king.png")) {
+                    if(texture.loadFromFile("assets/images/pieces/black-king.png")) {
                                 sprite.setTexture(texture, true);
                             } else {
                                 std::cout << "couldnt load black pawn texture" << std::endl;
@@ -233,13 +233,13 @@
                 : Piece(c, Type::Rook)
                 {
                     if(c == Color::White) {
-                        if(texture.loadFromFile("src/images/pieces/white-rook.png")) {
+                        if(texture.loadFromFile("assets/images/pieces/white-rook.png")) {
                             sprite.setTexture(texture, true);
                         } else {
                             std::cout << "couldnt load black rook texture" << std::endl;
                         }
                     } else {
-                        if(texture.loadFromFile("src/images/pieces/black-rook.png")) {
+                        if(texture.loadFromFile("assets/images/pieces/black-rook.png")) {
                             sprite.setTexture(texture, true);
                         } else {
                             std::cout << "couldnt load black rook texture" << std::endl;
@@ -825,7 +825,7 @@
 
         //cursor text
         sf::Font font;
-        if (!font.openFromFile("src/fonts/arial.ttf")) {
+        if (!font.openFromFile("assets/fonts/arial.ttf")) {
         std::cout << "couldnt find font" << std::endl;
         return -1;
         }
@@ -1201,7 +1201,7 @@
                         }
                     }
                     window.draw(promoteRectangle);
-                    sf::Vector2i promotionSquare = {7,1};
+                    //sf::Vector2i promotionSquare = {7,1};
 
                     Piece::Color pColor = (promotionSquare.y == 7) ? Piece::Color::Black : Piece::Color::White;
 
@@ -1232,7 +1232,15 @@
                     break;
                 }
                 case GameState::GameOver:{
-                    
+                    for(int y = 0; y < 8; y++) {
+                        for(int x = 0; x < 8; x++) {
+                            Piece* piece = board.getPieceFromGrid({x,y});
+                            if(piece) {
+                                piece->update();
+                                piece->draw(window);
+                            }
+                        }
+                    }
                     break;
                 }
             }
