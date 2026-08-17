@@ -1,78 +1,39 @@
-# Chess
+# C++ Schachspiel
 
-A 2-player chess game written in C++17 with SFML 3. Move pieces with the
-mouse; the engine enforces legal moves, check, checkmate, stalemate,
-castling, and pawn promotion.
+Ein Schachspiel für 2 Spieler, entwickelt mit C++17 und SFML 3.
 
-## Features
+Ich habe dieses Projekt umgesetzt, um **objektorientierte Programmierung (OOP)**, saubere Softwarearchitektur und die Implementierung komplexer Spiel-Logik von Grund auf zu vertiefen.
 
-- Full move validation per piece type (pawn double-step/en passant-less
-  capture rules, knight, bishop, rook, queen, king)
-- Check, checkmate, and stalemate detection
-- Castling (kingside/queenside)
-- Pawn promotion with an in-game selection UI
-- Move animation and board/turn highlighting
-- Right-click square highlighting for annotating the board
+---
 
-## Project structure
+## 🎮 Features
 
-```
-Chess/
-├── src/
-│   ├── main.cpp     # SFML rendering, input handling, game loop
-│   ├── Board.h       # Board state and move/check/checkmate logic (SFML-free)
-│   └── Piece.h        # Piece hierarchy and per-piece move rules (SFML-free)
-├── assets/
-│   ├── images/        # Piece sprites and board texture
-│   └── fonts/          # UI font
-├── CMakeLists.txt
-└── LICENSE
-```
+- **Vollständige Schachregeln:** Gültige Zug-Validierung für alle Figuren sowie Erkennung von Schach, Schachmatt und Patt.
+- **Sonderzüge:** Rochade und Bauernumwandlung (mit eigener Auswahl-UI im Spiel).
+- **Visuelles & Steuerung:** Sanfte Figuren-Animationen, Zug-Hervorhebung und Feld-Markierungen per Rechtsklick.
 
-`Board.h` and `Piece.h` contain the game logic decoupled from SFML (using a
-plain `Position { int x, y; }` struct instead of `sf::Vector2i`). This split
-exists so the engine can be reused outside the desktop app, e.g. compiled to
-WebAssembly with a JS/canvas front end instead of SFML.
+---
 
-## Building
+## 🛠️ Code-Struktur
 
-### Requirements
+Um den Code sauber zu strukturieren, ist die Spiel-Logik komplett von der SFML-Grafik getrennt:
 
-- CMake ≥ 3.16
-- A C++17 compiler
-- [SFML 3](https://www.sfml-dev.org/)
+- `src/Board.h` & `src/Piece.h` – Reine C++-Schachlogik (vollkommen unabhängig von SFML).
+- `src/main.cpp` – Verwaltet das SFML-Fenster, das Rendering und die Benutzereingaben.
 
-### macOS (Homebrew)
+> **Hinweis:** Durch die Entkopplung der Logik von SFML lässt sich die Engine später problemlos nach **WebAssembly (WASM)** kompilieren, um direkt im Browser zu laufen!
 
+---
+
+## 🚀 Kompilieren und Starten
+
+### Voraussetzungen
+- C++17-fähiger Compiler
+- CMake (>= 3.16)
+- SFML 3
+
+### Build-Schritte (macOS / Linux)
 ```bash
-brew install sfml cmake
 cmake -B build
 cmake --build build
 ./build/chess_game
-```
-
-Run the binary from the repository root — asset paths (`assets/...`) are
-resolved relative to the working directory.
-
-### Linux / Windows
-
-Install SFML 3 via your package manager or from source, then use the same
-`cmake -B build && cmake --build build` flow. On Windows with vcpkg:
-
-```powershell
-cmake -B build -DCMAKE_TOOLCHAIN_FILE=<vcpkg-root>/scripts/buildsystems/vcpkg.cmake
-cmake --build build
-```
-
-A VS Code build task (`.vscode/tasks.json`) is also included for a quick
-`clang++` build on macOS.
-
-## Roadmap
-
-- [ ] WebAssembly build using the decoupled `Board`/`Piece` engine
-- [ ] En passant
-- [ ] Move history / undo
-
-## License
-
-MIT — see [LICENSE](LICENSE).
