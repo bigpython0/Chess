@@ -1,27 +1,27 @@
 # C++ Schach
 
-Ein Schachspiel für 2 Spieler mit vollständigen Regeln: Zugvalidierung für alle Figuren, Rochade, En Passant, Bauernumwandlung sowie Erkennung von Schach, Schachmatt und Patt.
+schachspiel für 2 spieler, alle regeln drin: zugvalidierung für jede figur, rochade, en passant, bauernumwandlung, schach/schachmatt/patt-erkennung.
 
-**[Im Browser spielen](https://bigpython0.github.io/Chess/)**
+**[im browser spielen](https://bigpython0.github.io/Chess/)**
 
-Die komplette Spiellogik habe ich von Grund auf selbst in C++17 geschrieben. Ursprünglich lief das Spiel nur als natives SFML-Fenster. Die Trennung der Logik von der SFML-Oberfläche sowie den WebAssembly-Port für den Browser habe ich mit Unterstützung von Claude (Anthropic) umgesetzt.
+die spiellogik hab ich komplett selbst in c++17 geschrieben, lief anfangs nur als natives SFML-fenster. die trennung von logik und SFML-oberfläche + den webassembly-port für den browser hab ich mit claude umgesetzt.
 
-## Struktur
+## struktur
 
-- `src/Board.h`, `src/Piece.h` – Spiellogik, unabhängig von SFML
-- `src/main.cpp` – Desktop-Version mit SFML
-- `src/wasm_bindings.cpp` – bindet dieselbe Logik per Embind an JavaScript
-- `web/` – Browser-Frontend (HTML/CSS/JS)
+- `src/Board.h`, `src/Piece.h` – spiellogik, unabhängig von SFML
+- `src/main.cpp` – desktop version mit SFML
+- `src/wasm_bindings.cpp` – bindet dieselbe logik per embind an javascript
+- `web/` – browser frontend (html/css/js)
 
-## Ausführen
+## ausführen
 
-Desktop (benötigt SFML 3):
+desktop (braucht SFML 3):
 
 ```bash
 cmake -B build && cmake --build build && ./build/chess_game
 ```
 
-Web (benötigt das Emscripten SDK):
+web (braucht das emscripten sdk):
 
 ```bash
 ./build_wasm.sh
